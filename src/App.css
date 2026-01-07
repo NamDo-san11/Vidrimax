@@ -1,42 +1,355 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* src/App.css */
+
+:root{
+  --color-primary: #1a4064;
+  --color-accent: #00a36c;
+  --color-bg: #eef3f9;
+  --color-surface: #ffffff;
+  --color-text-main: #1f2933;
+  --color-text-muted: #6b7280;
+  --color-border-subtle: rgba(15, 23, 42, 0.08);
+
+  --sidebar-collapsed: 92px;
+  --sidebar-expanded: 280px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+html, body, #root{
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* CLAVE: evita el brinco de ancho cuando aparece o desaparece el scrollbar */
+html{
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body{
+  overflow-x: hidden;
+  overflow-y: scroll;
+  background: radial-gradient(circle at top left, #f3f8ff 0%, #eef3f9 45%, #ffffff 100%);
+  color: var(--color-text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.app-shell{
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: var(--sidebar-collapsed);
+
+  background: linear-gradient(180deg, var(--color-primary), var(--color-accent));
+  color: #fff;
+
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  z-index: 50;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.26);
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+
+  transition: width 0.22s ease-out, transform 0.22s ease-out;
+}
+
+.sidebar-header{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 14px;
+}
+
+.sidebar-header:hover{
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-logo{
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.sidebar-logo img{
+  width: 28px;
+  height: 28px;
+}
+
+.sidebar-title{
+  min-width: 0;
+}
+
+.sidebar-title-main{
+  display: block;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.92rem;
+  line-height: 1.1;
+}
+
+.sidebar-title-sub{
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.86;
+  margin-top: 2px;
+}
+
+.sidebar-menu{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 6px;
+}
+
+.sidebar-link{
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 12px;
+  border-radius: 999px;
+
+  color: #f9fafb;
+  text-decoration: none;
+  font-size: 0.98rem;
+  font-weight: 700;
+
+  opacity: 0.95;
+  transition: background 0.16s ease, transform 0.12s ease, opacity 0.16s ease;
+}
+
+.sidebar-link:hover{
+  background: rgba(15, 23, 42, 0.18);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.sidebar-link.active{
+  background: #ffffff;
+  color: var(--color-primary);
+  opacity: 1;
+}
+
+.sidebar-icon{
+  font-size: 1.25rem;
+  display: grid;
+  place-items: center;
+}
+
+.sidebar-label{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-footer{
+  margin-top: auto;
+  padding-top: 10px;
+  padding-bottom: 14px;
+}
+
+.sidebar-logout{
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+
+  padding: 12px 12px;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  gap: 10px;
+
+  background: rgba(15, 23, 42, 0.28);
+  color: #f9fafb;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sidebar-logout:hover{
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.sidebar-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 40;
+  width: 100%;
+}
+
+/* ===== CONTENT ===== */
+.content-shell{
+  min-height: 100vh;
+  margin-left: var(--sidebar-collapsed);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  width: calc(100vw - var(--sidebar-collapsed));
+  box-sizing: border-box;
+  transition: none;  /* CLAVE: no animar el ancho, evita “encogidas” visibles */
+}
+
+.topbar{
+  height: 64px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(16px);
+
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.topbar-title{
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-text-muted);
+}
+
+.topbar-menu-btn{
+  display: none;
+  border: none;
+  background: transparent;
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+.content-main{
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 22px;
+  box-sizing: border-box;
+}
+
+.page-container{
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* =========================
+   DESKTOP
+   ========================= */
+@media (min-width: 901px){
+  .sidebar-title,
+  .sidebar-label{
+    display: none;
   }
-  to {
-    transform: rotate(360deg);
+
+  .sidebar-link,
+  .sidebar-logout{
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 12px 10px;
+  }
+
+  @media (hover: hover) and (pointer: fine){
+    .sidebar:hover{
+      width: var(--sidebar-expanded);
+      z-index: 60;
+    }
+
+    .sidebar:hover .sidebar-title,
+    .sidebar:hover .sidebar-label{
+      display: block;
+    }
+
+    .sidebar:hover .sidebar-link,
+    .sidebar:hover .sidebar-logout{
+      grid-template-columns: 44px 1fr;
+      justify-items: stretch;
+      padding: 12px 12px;
+    }
+
+    /* CLAVE: elimina esta regla, es la que encoge el contenido al abrir el menú */
+    /* .sidebar:hover ~ .content-shell{ width: calc(100vw - var(--sidebar-expanded)); } */
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* =========================
+   MÓVIL
+   ========================= */
+@media (max-width: 900px){
+  .content-shell{
+    margin-left: 0;
+    width: 100vw;
+  }
+
+  .topbar-menu-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar{
+    width: var(--sidebar-expanded);
+    transform: translateX(-110%);
+  }
+
+  .sidebar.sidebar-open{
+    transform: translateX(0);
+  }
+
+  .sidebar-title,
+  .sidebar-label{
+    display: block !important;
   }
 }
 
-.card {
-  padding: 2em;
+@media (max-width: 640px){
+  .content-main{
+    padding: 12px;
+  }
 }
 
-.read-the-docs {
-  color: #888;
+@media (min-width: 901px){
+  .content-main{
+    padding-right: 12px;
+    padding-left: 22px;
+  }
+}
+
+/* Pega esto al final de src/App.css para evitar que Bootstrap o tu layout mueva el login */
+.login-page{
+  margin-left: 0 !important;
 }

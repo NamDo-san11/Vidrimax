@@ -1,35 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// src/App.jsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+import { AuthProvider } from "./database/authcontext";
+import ProtectedRoute from "./components/protectedRoute";
+import Login from "./views/login";
+import Encabezado from "./components/encabezado";
+
+import Inicio from "./views/inicio";
+import Inventario from "./views/inventario";
+import Ventas from "./views/ventas";
+import Empleados from "./views/empleados";
+import Configuracion from "./views/configuracion";
+import Pagos from "./views/pagos";
+
+import "./App.css";
+
+const withLayout = (PageComponent) => (
+  <Encabezado>
+    <PageComponent />
+  </Encabezado>
+);
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vidrimax</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Login />} />
+
+          <Route
+            path="/inicio"
+            element={<ProtectedRoute element={withLayout(Inicio)} />}
+          />
+          <Route
+            path="/inventario"
+            element={<ProtectedRoute element={withLayout(Inventario)} />}
+          />
+          <Route
+            path="/ventas"
+            element={<ProtectedRoute element={withLayout(Ventas)} />}
+          />
+          <Route
+            path="/empleados"
+            element={<ProtectedRoute element={withLayout(Empleados)} />}
+          />
+
+          <Route
+            path="/pagos"
+            element={
+              <ProtectedRoute
+                allowedRoles={["admin"]}
+                element={withLayout(Pagos)}
+              />
+            }
+          />
+
+          <Route
+            path="/configuracion"
+            element={<ProtectedRoute element={withLayout(Configuracion)} />}
+          />
+
+          <Route path="*" element={<Navigate to="/inicio" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

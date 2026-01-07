@@ -1,0 +1,154 @@
+.ventas-container {
+  padding: 24px;
+  background: #f4f6fb;
+  min-height: 100vh;
+}
+
+/* CONTENEDOR LADO A LADO */
+.ventas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* TARJETAS */
+.card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+}
+
+/* INVENTARIO */
+.inv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.inv-row small {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.btn-agregar {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn-agregar.disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+.qty-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: #e0e7ff;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+
+  /* 🔥 ESTO ES LO IMPORTANTE */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1;
+}
+
+
+
+/* CARRITO */
+.cart-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 120px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.qty-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.qty-value {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.price {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* TOTAL */
+.total {
+  text-align: right;
+  margin-top: 16px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* CONFIRMAR */
+.btn-confirmar {
+  margin-top: 16px;
+  width: 100%;
+  padding: 14px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-confirmar:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .ventas-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inv-search {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  font-size: 14px;
+  outline: none;
+}
+
+.inv-search:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+}
+
+.inv-search-input{
+  width:100%;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  margin-bottom:12px;
+}
