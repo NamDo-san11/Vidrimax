@@ -1,6 +1,6 @@
 // src/views/Inicio.jsx
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, doc, getDoc, query, where, getDocs, startAt, endAt } from "firebase/firestore";
+import { collection, onSnapshot, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { useAuth } from "../database/authcontext";
 import { Button, Card, Container, Row, Col } from "react-bootstrap";
@@ -163,52 +163,27 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* Perfil de usuario */}
-      {perfil && (
-        <Card className="mb-4 shadow text-center p-3">
-          <Row className="align-items-center">
-            <Col md={2}>
-              <img
-                src={perfil.foto || Idefault}
-                alt="Foto perfil"
-                className="rounded-circle"
-                width="80"
-                height="80"
-              />
-            </Col>
-            <Col md={10} className="text-start">
-              <h5>{perfil.nombre}</h5>
-              <p className="mb-1 text-muted">Correo: {perfil.correo || "N/A"}</p>
-              <p className="mb-1">Peso: {perfil.peso || "??"} kg</p>
-              <p className="mb-1">
-                Enfermedades: {perfil.enfermedades || "Sin enfermedades"}
-              </p>
-            </Col>
-          </Row>
-        </Card>
-      )}
-
       {/* Cards KPI */}
       <div className="cards-grid">
-        <div className="card ">
+        <div className="card card-ventas" data-aos="fade-up">
           <p>Ventas este mes</p>
           <h2>C${ventasMes.toFixed(2)}</h2>
           <small>{numVentasMes} ventas</small>
         </div>
 
-        <div className="card">
+        <div className="card card-total" data-aos="fade-up" data-aos-delay="100">
           <p>Total acumulado</p>
           <h2>C${totalAcumulado.toFixed(2)}</h2>
           <small>Total histórico de ventas</small>
         </div>
 
-        <div className="card">
+        <div className="card card-inventario" data-aos="fade-up" data-aos-delay="200">
           <p>Inventario disponible</p>
           <h2>C${totalInventario.toFixed(2)}</h2>
           <small>Valor en bodega</small>
         </div>
 
-        <div className="card card-alerta">
+        <div className="card card-alerta" data-aos="fade-up" data-aos-delay="300">
           <p>Productos con stock mínimo</p>
           <h2>{alertasStock}</h2>
           <span>Existencia &lt; {LOW_STOCK}</span>
@@ -216,7 +191,7 @@ export default function Inicio() {
       </div>
 
       {/* Información del negocio */}
-      <section className="info-negocio mt-4 p-3 text-center">
+      <section className="info-negocio mt-4 p-4 text-center" data-aos="fade-up">
         <h4>Bienvenido a Vidrimax</h4>
         <p>
           Controla tus ventas, inventario y productos en tiempo real. Mantén tu
