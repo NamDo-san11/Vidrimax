@@ -12,6 +12,7 @@ import Inventario from "./views/inventario";
 import Ventas from "./views/ventas";
 import Empleados from "./views/empleados";
 import Configuracion from "./views/configuracion";
+import GestionVentas from "./views/gestionventas";
 import Pagos from "./views/pagos";
 import Catalogo from "./views/catalogo";
 
@@ -41,6 +42,10 @@ function App() {
           <Route
             path="/inventario"
             element={<ProtectedRoute element={withLayout(Inventario)} />}
+          />
+          <Route
+            path="/gestionventas"
+            element={<ProtectedRoute element={withLayout(GestionVentas)} />}
           />
           <Route
             path="/ventas"

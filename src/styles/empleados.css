@@ -152,17 +152,51 @@
   gap: 8px;
   justify-content: flex-end;
 }
-
-.emp-btn{
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  background: rgba(255,255,255,0.85);
-  font-weight: 900;
+/* Botón base */
+.emp-btn {
+  background-color: #f8f9fa;   /* gris claro */
+  color: #212529;              /* texto oscuro para que se lea */
+  border: 1px solid #ced4da;   /* borde visible */
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
-  color: #111827;
+  transition: all 0.2s ease;
 }
+
+/* Hover para dar feedback */
+.emp-btn:hover {
+  background-color: #e9ecef;
+}
+
+/* Botón deshabilitado */
+.emp-btn:disabled {
+  background-color: #f1f3f5;
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
+/* Botón principal */
+.emp-primary {
+  background-color: #4c6ef5;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.emp-primary:hover {
+  background-color: #3b5bdb;
+}
+
+.emp-primary:disabled {
+  background-color: #a5b4fc;
+  cursor: not-allowed;
+}
+
 
 .emp-btn:disabled{
   opacity: 0.65;

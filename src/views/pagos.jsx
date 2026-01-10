@@ -187,7 +187,7 @@ export default function Pagos() {
                       </button>
                     ) : (
                       <button
-                        className="btn undo"
+                        className="emp-danger btn undo"
                         disabled={busyId === emp.id}
                         onClick={() => onDeshacer(emp)}
                         type="button"

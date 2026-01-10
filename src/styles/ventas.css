@@ -142,13 +142,15 @@
 
 .inv-search:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+  box-shadow: 0 0 0 2px rgba(252, 252, 252, 0.15);
 }
 
 .inv-search-input{
-  width:100%;
-  padding:10px 12px;
+  width:80%;
+  padding:10px 10px;
   border-radius:10px;
   border:1px solid #ddd;
   margin-bottom:12px;
+  margin-left: 12px;
+  margin-right: 12px;
 }

@@ -9,10 +9,11 @@ import "../App.css";
 const menuItems = [
   { to: "/inicio", icon: "bi-house", label: "Inicio" },
   { to: "/inventario", icon: "bi-box-seam", label: "Inventario"},
-  { to: "/catalogo", icon: "bi-box-seam", label: "Catálogo"},
+  { to: "/catalogo", icon: "bi bi-front", label: "Catálogo"},
   { to: "/ventas", icon: "bi-receipt", label: "Ventas"},
   { to: "/empleados", icon: "bi-people", label: "Empleados"},
   { to: "/pagos", icon: "bi-credit-card", label: "Pagos"},
+  { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas"},
   { to: "/configuracion", icon: "bi-gear", label: "Configuración"},
 ];
 
