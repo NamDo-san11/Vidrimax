@@ -1,9 +1,34 @@
 {
-  "name": "Vidriería App",
-  "short_name": "Vidriería",
+  "name": "Vidrimax",
+  "short_name": "Vidrimax",
+  "description": "Gestión completa de vidrierías: inventario, ventas y empleados",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
-  "icons": []
+  "theme_color": "#212327",
+  "icons": [
+    {
+      "src": "/icons/vidrimax-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/vidrimax-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/logoex.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/logoex.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
