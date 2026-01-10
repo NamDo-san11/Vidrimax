@@ -19,13 +19,13 @@
       "type": "image/png"
     },
     {
-      "src": "/assets/logoex.png",
+      "src": "/assets/vidrimax-512x512.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/assets/logoex.png",
+      "src": "/assets/vidrimax-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
