@@ -1,10 +1,5 @@
 // src/database/authcontext.jsx
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-} from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { appfirebase } from "./firebaseconfig";
 
@@ -17,21 +12,22 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
+  // Estado para notificaciones de conexión
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
   useEffect(() => {
     const auth = getAuth(appfirebase);
 
+    // Persistencia de usuario
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsLoggedIn(!!firebaseUser);
       setInitializing(false);
     });
 
-    const handleOnline = () => {
-      console.log("Conexión restablecida");
-    };
-    const handleOffline = () => {
-      console.log("Sin conexión a internet");
-    };
+    // Manejo de conexión/desconexión
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -43,6 +39,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  // Cerrar sesión
   const logout = async () => {
     const auth = getAuth(appfirebase);
     await signOut(auth);
@@ -51,7 +48,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, initializing, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoggedIn, initializing, logout, isOnline }}
+    >
+      {/* Banner de conexión */}
+      {!isOnline && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          background: "#dc3545",
+          color: "white",
+          textAlign: "center",
+          padding: "0.5rem",
+          zIndex: 10000
+        }}>
+          Sin conexión a internet
+        </div>
+      )}
+
       {children}
     </AuthContext.Provider>
   );

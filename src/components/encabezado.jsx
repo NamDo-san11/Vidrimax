@@ -2,25 +2,46 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../database/authcontext";
-import logo from "../assets/react.svg";
+import logo from "../assets/logoex.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../App.css";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../database/firebaseconfig";
 
+// Define los items de menú y a qué roles se les permite ver
 const menuItems = [
-  { to: "/inicio", icon: "bi-house", label: "Inicio" },
-  { to: "/inventario", icon: "bi-box-seam", label: "Inventario"},
-  { to: "/catalogo", icon: "bi bi-front", label: "Catálogo"},
-  { to: "/ventas", icon: "bi-receipt", label: "Ventas"},
-  { to: "/empleados", icon: "bi-people", label: "Empleados"},
-  { to: "/pagos", icon: "bi-credit-card", label: "Pagos"},
-  { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas"},
-  { to: "/configuracion", icon: "bi-gear", label: "Configuración"},
+  { to: "/inicio", icon: "bi-house", label: "Inicio", roles: ["administrador", "empleado"] },
+  { to: "/inventario", icon: "bi-box-seam", label: "Inventario", roles: ["administrador"] },
+  { to: "/catalogo", icon: "bi-front", label: "Catálogo", roles: ["administrador", "empleado"] },
+  { to: "/ventas", icon: "bi-receipt", label: "Ventas", roles: ["administrador", "empleado"] },
+  { to: "/empleados", icon: "bi-people", label: "Empleados", roles: ["administrador"] },
+  { to: "/pagos", icon: "bi-credit-card", label: "Pagos", roles: ["administrador"] },
+  { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["administrador"] },
+  { to: "/configuracion", icon: "bi-gear", label: "Configuración", roles: ["administrador"] },
 ];
 
 const Encabezado = ({ children }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, logout, user } = useAuth();
   const navigate = useNavigate();
+
+  const [rol, setRol] = useState(null);
+  const [loadingRol, setLoadingRol] = useState(true);
+
+  // Obtener el rol del usuario desde Firestore
+  useEffect(() => {
+    const obtenerRol = async () => {
+      if (user) {
+        const ref = doc(db, "users", user.uid); // colección "users"
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setRol(snap.data().role); // campo role
+        }
+        setLoadingRol(false);
+      }
+    };
+    obtenerRol();
+  }, [user]);
 
   const handleLogoClick = () => navigate("/inicio");
 
@@ -29,7 +50,7 @@ const Encabezado = ({ children }) => {
     navigate("/");
   };
 
-  // !Cierra el menú al pasar a desktop (evita estados raros)
+  // Cierra menú en desktop
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth > 900) setIsMobileOpen(false);
@@ -37,6 +58,8 @@ const Encabezado = ({ children }) => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  if (!isLoggedIn) return null;
 
   return (
     <div className="app-shell">
@@ -52,18 +75,24 @@ const Encabezado = ({ children }) => {
         </div>
 
         <nav className="sidebar-menu">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
-              onClick={() => setIsMobileOpen(false)}
-              end
-            >
-              <i className={`bi ${item.icon} sidebar-icon`} />
-              <span className="sidebar-label">{item.label}</span>
-            </NavLink>
-          ))}
+          {loadingRol ? (
+            <div className="sidebar-loading">Cargando menú...</div>
+          ) : (
+            menuItems
+              .filter((item) => item.roles.includes(rol)) // Filtra según rol
+              .map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
+                  onClick={() => setIsMobileOpen(false)}
+                  end
+                >
+                  <i className={`bi ${item.icon} sidebar-icon`} />
+                  <span className="sidebar-label">{item.label}</span>
+                </NavLink>
+              ))
+          )}
         </nav>
 
         {isLoggedIn && (
@@ -76,9 +105,7 @@ const Encabezado = ({ children }) => {
         )}
       </aside>
 
-      {isMobileOpen && (
-        <div className="sidebar-overlay" onClick={() => setIsMobileOpen(false)} />
-      )}
+      {isMobileOpen && <div className="sidebar-overlay" onClick={() => setIsMobileOpen(false)} />}
 
       <div className="content-shell">
         <header className="topbar">

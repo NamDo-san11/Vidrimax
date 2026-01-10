@@ -58,12 +58,7 @@ function App() {
 
           <Route
             path="/pagos"
-            element={
-              <ProtectedRoute
-                allowedRoles={["admin"]}
-                element={withLayout(Pagos)}
-              />
-            }
+            element={<ProtectedRoute element={withLayout(Pagos)} />}
           />
 
           <Route
