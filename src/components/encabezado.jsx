@@ -8,11 +8,12 @@ import "../App.css";
 
 const menuItems = [
   { to: "/inicio", icon: "bi-house", label: "Inicio" },
-  { to: "/inventario", icon: "bi-box-seam", label: "Inventario" },
-  { to: "/ventas", icon: "bi-receipt", label: "Ventas" },
-  { to: "/empleados", icon: "bi-people", label: "Empleados" },
-  { to: "/pagos", icon: "bi-credit-card", label: "Pagos" },
-  { to: "/configuracion", icon: "bi-gear", label: "Configuración" },
+  { to: "/inventario", icon: "bi-box-seam", label: "Inventario"},
+  { to: "/catalogo", icon: "bi-box-seam", label: "Catálogo"},
+  { to: "/ventas", icon: "bi-receipt", label: "Ventas"},
+  { to: "/empleados", icon: "bi-people", label: "Empleados"},
+  { to: "/pagos", icon: "bi-credit-card", label: "Pagos"},
+  { to: "/configuracion", icon: "bi-gear", label: "Configuración"},
 ];
 
 const Encabezado = ({ children }) => {
@@ -27,7 +28,7 @@ const Encabezado = ({ children }) => {
     navigate("/");
   };
 
-  // Cierra el menú al pasar a desktop (evita estados raros)
+  // !Cierra el menú al pasar a desktop (evita estados raros)
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth > 900) setIsMobileOpen(false);

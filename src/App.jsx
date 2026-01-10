@@ -13,6 +13,7 @@ import Ventas from "./views/ventas";
 import Empleados from "./views/empleados";
 import Configuracion from "./views/configuracion";
 import Pagos from "./views/pagos";
+import Catalogo from "./views/catalogo";
 
 import "./App.css";
 
@@ -32,6 +33,10 @@ function App() {
           <Route
             path="/inicio"
             element={<ProtectedRoute element={withLayout(Inicio)} />}
+          />
+          <Route
+            path="/catalogo"
+            element={<ProtectedRoute element={withLayout(Catalogo)} />}
           />
           <Route
             path="/inventario"

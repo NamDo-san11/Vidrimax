@@ -1,0 +1,135 @@
+/* src/styles/catalogoEmpleados.css */
+
+.empCat-page {
+  padding: 20px;
+  background: #f5f5f5; /* Fondo claro */
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+  color: #222; /* Texto oscuro */
+}
+
+.empCat-container {
+  max-width: 1200px;
+  margin: auto;
+}
+
+.empCat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.empCat-title {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.empCat-subtitle {
+  font-size: 14px;
+  color: #555;
+}
+
+.empCat-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.empCat-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+}
+
+.empCat-search input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #222;
+  flex: 1;
+  padding-left: 6px;
+}
+
+.empCat-filter {
+  background: #fff;
+  color: #222;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.empCat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.empCat-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.15s;
+}
+
+.empCat-card:hover {
+  transform: scale(1.02);
+}
+
+.empCat-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.empCat-pill {
+  background: #eee;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #333;
+}
+
+.empCat-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #111;
+}
+
+.empCat-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+.empCat-line {
+  display: flex;
+  justify-content: space-between;
+}
+
+.empCat-money {
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.empCat-empty {
+  text-align: center;
+  margin-top: 40px;
+  color: #777;
+}
+
+.is-off {
+  opacity: 0.6;
+}

@@ -1,3 +1,4 @@
+// src/views/ventas.jsx
 import { useEffect, useState } from "react";
 import {
   collection,
@@ -15,32 +16,47 @@ function Ventas() {
   const [carrito, setCarrito] = useState([]);
   const [guardando, setGuardando] = useState(false);
 
-  // 🔍 NUEVO: búsqueda
+  // 🔍 Búsqueda
   const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     const cargarInventario = async () => {
-      const snap = await getDocs(collection(db, "inventario"));
-      const data = snap.docs.map(d => {
-        const i = d.data();
-        const stock = Number(i.stock_total ?? 0);
-        const vendidos = Number(i.vendidos ?? 0);
-        return {
-          id: d.id,
-          descripcion: i.descripcion,
-          precio: Number(i.precio_venta),
-          existencia: Math.max(stock - vendidos, 0)
-        };
-      });
-      setInventario(data);
+      try {
+        const snap = await getDocs(collection(db, "inventario"));
+        const data = snap.docs.map(d => {
+          const i = d.data();
+          const stock = Number(i.stock_total ?? 0);
+          const vendidos = Number(i.vendidos ?? 0);
+          return {
+            id: d.id,
+            nombre: i.nombre ?? "",
+            color: i.color ?? "",
+            categoria: i.categoria ?? "",
+            descripcion: i.descripcion ?? "",
+            precio: Number(i.precio_venta ?? 0),
+            existencia: Math.max(stock - vendidos, 0)
+          };
+        });
+        setInventario(data);
+      } catch (e) {
+        console.error("Error cargando inventario:", e);
+      }
     };
     cargarInventario();
   }, []);
 
-  // 🔍 NUEVO: inventario filtrado
-  const inventarioFiltrado = inventario.filter(p =>
-    p.descripcion.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  // 🔍 Filtrado seguro
+  const inventarioFiltrado = inventario.filter(p => {
+    const nombre = String(p.nombre ?? "");
+    const color = String(p.color ?? "");
+    const categoria = String(p.categoria ?? "");
+    const busq = busqueda.toLowerCase();
+    return (
+      nombre.toLowerCase().includes(busq) ||
+      color.toLowerCase().includes(busq) ||
+      categoria.toLowerCase().includes(busq)
+    );
+  });
 
   const agregar = (p) => {
     if (p.existencia <= 0) return;
@@ -68,9 +84,7 @@ function Ventas() {
 
   const restar = (id) => {
     setCarrito(carrito
-      .map(i =>
-        i.id === id ? { ...i, cantidad: i.cantidad - 1 } : i
-      )
+      .map(i => i.id === id ? { ...i, cantidad: i.cantidad - 1 } : i)
       .filter(i => i.cantidad > 0)
     );
   };
@@ -85,11 +99,11 @@ function Ventas() {
       for (const item of carrito) {
         const ref = doc(db, "inventario", item.id);
         const snap = await getDoc(ref);
-        const stock = snap.data().stock_total;
+        const stock = snap.data().stock_total ?? 0;
         const vendidos = snap.data().vendidos ?? 0;
 
         if (item.cantidad > stock - vendidos) {
-          throw new Error(`Stock insuficiente: ${item.descripcion}`);
+          throw new Error(`Stock insuficiente: ${item.nombre}`);
         }
       }
 
@@ -97,7 +111,9 @@ function Ventas() {
         fecha: new Date(),
         items: carrito.map(i => ({
           id: i.id,
-          descripcion: i.descripcion,
+          nombre: i.nombre,
+          color: i.color,
+          categoria: i.categoria,
           cantidad: i.cantidad,
           precio: i.precio
         })),
@@ -115,6 +131,7 @@ function Ventas() {
 
       alert("Venta guardada correctamente");
       setCarrito([]);
+      setBusqueda("");
     } catch (e) {
       alert(e.message);
     } finally {
@@ -131,11 +148,10 @@ function Ventas() {
         <div className="card">
           <h3>Inventario</h3>
 
-          {/* 🔍 INPUT DE BÚSQUEDA */}
           <input
             className="inv-search"
             type="text"
-            placeholder="Buscar producto..."
+            placeholder="Buscar por nombre, color o categoría..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -143,7 +159,7 @@ function Ventas() {
           {inventarioFiltrado.map(p => (
             <div className="inv-row" key={p.id}>
               <div>
-                <strong>{p.descripcion}</strong>
+                <strong>{p.nombre}</strong> <span style={{color:'#999'}}>({p.color})</span>
                 <small>Stock: {p.existencia}</small>
               </div>
 
@@ -164,7 +180,7 @@ function Ventas() {
 
           {carrito.map(i => (
             <div className="cart-row" key={i.id}>
-              <span>{i.descripcion}</span>
+              <span>{i.nombre} ({i.color})</span>
 
               <div className="qty-box">
                 <button className="qty-btn" onClick={() => restar(i.id)}>−</button>
@@ -177,6 +193,7 @@ function Ventas() {
               </span>
             </div>
           ))}
+
           <div className="total">
             Total: C$ {total.toLocaleString("es-NI", { minimumFractionDigits: 2 })}
           </div>
