@@ -100,30 +100,31 @@ export default function Inicio() {
   }, [user]);
 
   // ================== INVENTARIO ==================
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "inventario"), (snapshot) => {
-      let alertas = 0;
-      let valorInventario = 0;
+useEffect(() => {
+  const unsub = onSnapshot(collection(db, "inventario"), (snapshot) => {
+    let alertas = 0; // productos con stock bajo
+    let valorInventario = 0; // valor total del inventario
 
-      snapshot.forEach((doc) => {
-        const r = doc.data();
-        if (r.activo === false) return;
+    snapshot.forEach((doc) => {
+      const r = doc.data();
+      if (r.activo === false) return;
 
-        const stockTotal = Number(r.stock_total ?? 0);
-        const vendidos = Number(r.vendidos ?? 0);
-        const existencia = Math.max(stockTotal - vendidos, 0);
-        const precioCompra = Number(r.precio_compra ?? 0);
+      const stockTotal = Number(r.stock_total ?? 0); // 🔹 solo stock_total
+      const precioCompra = Number(r.precio_compra ?? 0);
 
-        valorInventario += existencia * precioCompra;
-        if (existencia < LOW_STOCK) alertas++;
-      });
+      valorInventario += stockTotal * precioCompra; // usamos stock_total
 
-      setAlertasStock(alertas);
-      setTotalInventario(valorInventario);
+      if (stockTotal < LOW_STOCK) { // 🔹 alertas según stock_total
+        alertas++;
+      }
     });
 
-    return () => unsub();
-  }, []);
+    setAlertasStock(alertas);       // cuántos productos tienen stock < 5
+    setTotalInventario(valorInventario); // valor total del inventario
+  });
+
+  return () => unsub();
+}, []);
 
   // ================== TOP CATEGORIAS ==================
   useEffect(() => {

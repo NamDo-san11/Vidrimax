@@ -17,7 +17,6 @@ const menuItems = [
   { to: "/empleados", icon: "bi-people", label: "Empleados", roles: ["admin"] },
   { to: "/pagos", icon: "bi-credit-card", label: "Pagos", roles: ["admin"] },
   { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["admin"] },
-  { to: "/configuracion", icon: "bi-gear", label: "Configuración", roles: ["admin"] },
 ];
 
 const Encabezado = ({ children }) => {
