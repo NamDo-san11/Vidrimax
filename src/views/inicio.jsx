@@ -1,11 +1,19 @@
 // src/views/Inicio.jsx
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, doc, getDoc, getDocs } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { useAuth } from "../database/authcontext";
-import { Button, Card, Container, Row, Col } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import ModalInstalacionIOS from "../components/inicio/ModalInstalacionIOS";
-import Idefault from "../assets/default.jpeg";
 import "../styles/inicio.css";
 
 const LOW_STOCK = 5;
@@ -13,19 +21,21 @@ const LOW_STOCK = 5;
 export default function Inicio() {
   const { user } = useAuth();
 
-  // Datos de usuario
+  // 👤 Perfil y empleado
   const [perfil, setPerfil] = useState(null);
+  const [empleadoNombre, setEmpleadoNombre] = useState("");
 
-  // Inventario
+  // 📦 Inventario
   const [alertasStock, setAlertasStock] = useState(0);
   const [totalInventario, setTotalInventario] = useState(0);
 
-  // Ventas
-  const [ventasMes, setVentasMes] = useState(0);
-  const [totalAcumulado, setTotalAcumulado] = useState(0);
-  const [numVentasMes, setNumVentasMes] = useState(0);
+  // 📊 KPI top categorias
+  const [topCategorias, setTopCategorias] = useState([]);
 
-  // PWA
+  // 🧾 Ventas recientes
+  const [ventasRecientes, setVentasRecientes] = useState([]);
+
+  // 📲 PWA
   const [solicitudInstalacion, setSolicitudInstalacion] = useState(null);
   const [mostrarBotonInstalacion, setMostrarBotonInstalacion] = useState(false);
   const [esDispositivoIOS, setEsDispositivoIOS] = useState(false);
@@ -34,13 +44,12 @@ export default function Inicio() {
   const abrirModalInstrucciones = () => setMostrarModalInstrucciones(true);
   const cerrarModalInstrucciones = () => setMostrarModalInstrucciones(false);
 
-  // Detectar dispositivo iOS
+  // ================== PWA ==================
   useEffect(() => {
     const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     setEsDispositivoIOS(esIOS);
   }, []);
 
-  // Capturar evento beforeinstallprompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -48,15 +57,15 @@ export default function Inicio() {
       setMostrarBotonInstalacion(true);
     };
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () =>
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
   }, []);
 
   const instalacion = async () => {
     if (!solicitudInstalacion) return;
     try {
       await solicitudInstalacion.prompt();
-      const { outcome } = await solicitudInstalacion.userChoice;
-      console.log(outcome === "accepted" ? "Instalación aceptada" : "Instalación rechazada");
+      await solicitudInstalacion.userChoice;
     } catch (error) {
       console.error("Error al instalar PWA:", error);
     } finally {
@@ -65,22 +74,32 @@ export default function Inicio() {
     }
   };
 
-  // Perfil de usuario
+  // ================== PERFIL ==================
   useEffect(() => {
     const obtenerPerfil = async () => {
       if (!user) return;
       try {
-        const ref = doc(db, "usuarios", user.uid);
+        const ref = doc(db, "users", user.uid);
         const snap = await getDoc(ref);
-        if (snap.exists()) setPerfil(snap.data());
+        if (snap.exists()) {
+          const data = snap.data();
+          setPerfil(data);
+
+          // obtener nombre del empleado
+          if (data.empleadoId) {
+            const empRef = doc(db, "empleados", data.empleadoId);
+            const empSnap = await getDoc(empRef);
+            if (empSnap.exists()) setEmpleadoNombre(empSnap.data().nombre);
+          }
+        }
       } catch (error) {
-        console.error("Error al obtener perfil:", error);
+        console.error("Error perfil:", error);
       }
     };
     obtenerPerfil();
   }, [user]);
 
-  // Inventario en tiempo real
+  // ================== INVENTARIO ==================
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "inventario"), (snapshot) => {
       let alertas = 0;
@@ -106,54 +125,53 @@ export default function Inicio() {
     return () => unsub();
   }, []);
 
-  // Ventas
+  // ================== TOP CATEGORIAS ==================
   useEffect(() => {
-    const cargarVentas = async () => {
+    const cargarTopCategorias = async () => {
       try {
-        const ventasCol = collection(db, "ventas");
-        const docs = await getDocs(ventasCol);
-
-        let total = 0;
-        let mesActual = new Date().getMonth();
-        let ventasMesTotal = 0;
-        let numVentas = 0;
+        const docs = await getDocs(collection(db, "ventas"));
+        const categoriasMap = {};
 
         docs.forEach((doc) => {
-          const data = doc.data();
-          const fecha = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-          const monto = Number(data.monto ?? 0);
-
-          total += monto;
-
-          if (fecha.getMonth() === mesActual) {
-            ventasMesTotal += monto;
-            numVentas++;
-          }
+          const venta = doc.data();
+          if (!venta.items) return;
+          venta.items.forEach((item) => {
+            categoriasMap[item.categoria] = (categoriasMap[item.categoria] || 0) + item.cantidad;
+          });
         });
 
-        setTotalAcumulado(total);
-        setVentasMes(ventasMesTotal);
-        setNumVentasMes(numVentas);
+        const top3 = Object.entries(categoriasMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([categoria, cantidad]) => ({ categoria, cantidad }));
+
+        setTopCategorias(top3);
       } catch (error) {
-        console.error("Error al cargar ventas:", error);
+        console.error("Error top categorias:", error);
       }
     };
-    cargarVentas();
+    cargarTopCategorias();
   }, []);
 
+  // ================== VENTAS RECIENTES ==================
+  // ================== UI ==================
   return (
     <div className="inicio-container">
-      {/* Botón instalación PWA */}
+      {/* 👋 SALUDO */}
+      <h4 className="mb-3">Bienvenido{empleadoNombre ? `, ${empleadoNombre}` : ""} 👋</h4>
+
+      {/* 📲 BOTÓN PWA */}
       {!esDispositivoIOS && mostrarBotonInstalacion && (
         <div className="mb-4 text-center">
-          <Button variant="primary" onClick={instalacion}>
+          <Button onClick={instalacion}>
             Instalar app <i className="bi bi-download"></i>
           </Button>
         </div>
       )}
+
       {esDispositivoIOS && (
         <div className="mb-4 text-center">
-          <Button variant="primary" onClick={abrirModalInstrucciones}>
+          <Button onClick={abrirModalInstrucciones}>
             Cómo instalar en iPhone <i className="bi bi-phone"></i>
           </Button>
           <ModalInstalacionIOS
@@ -163,46 +181,72 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* Cards KPI */}
+      {/* 📊 KPI */}
       <div className="cards-grid">
-        <div className="card card-ventas" data-aos="fade-up">
-          <p>Ventas este mes</p>
-          <h2>C${ventasMes.toFixed(2)}</h2>
-          <small>{numVentasMes} ventas</small>
-        </div>
-
-        <div className="card card-total" data-aos="fade-up" data-aos-delay="100">
-          <p>Total acumulado</p>
-          <h2>C${totalAcumulado.toFixed(2)}</h2>
-          <small>Total histórico de ventas</small>
-        </div>
-
-        <div className="card card-inventario" data-aos="fade-up" data-aos-delay="200">
+        <div className="card card-inventario">
           <p>Inventario disponible</p>
           <h2>C${totalInventario.toFixed(2)}</h2>
           <small>Valor en bodega</small>
         </div>
 
-        <div className="card card-alerta" data-aos="fade-up" data-aos-delay="300">
-          <p>Productos con stock mínimo</p>
+        <div className="card card-alerta">
+          <p>Stock bajo</p>
           <h2>{alertasStock}</h2>
-          <span>Existencia &lt; {LOW_STOCK}</span>
+          <span>&lt; {LOW_STOCK} unidades</span>
+        </div>
+
+        <div className="card card-top">
+          <p>Top 3 categorías</p>
+          {topCategorias.map((cat, i) => (
+            <div key={i} style={{ marginTop: i === 0 ? "0.4rem" : "0.6rem" }}>
+              <b>{cat.categoria}</b>: {cat.cantidad} unidades
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Información del negocio */}
-      <section className="info-negocio mt-4 p-4 text-center" data-aos="fade-up">
-        <h4>Bienvenido a Vidrimax</h4>
-        <p>
-          Controla tus ventas, inventario y productos en tiempo real. Mantén tu
-          negocio organizado y toma decisiones inteligentes con datos actualizados
-          al momento.
-        </p>
-        <p>
-          Compatible con dispositivos Android e iOS. Instala la app para acceder más rápido y
-          sin depender del navegador.
-        </p>
-      </section>
+
+{/* 🌟 MISIÓN, VISIÓN Y QUÉ SOMOS */}
+<section className="info-negocio mt-5">
+  <div className="text-center mb-4">
+    <h4>Acerca de Vidrimax</h4>
+    <p className="text-muted">
+      Conoce nuestra filosofía y lo que nos motiva a ofrecer siempre lo mejor
+      en vidriería y herrajes. Nuestra experiencia y compromiso están al servicio
+      de tu negocio.
+    </p>
+  </div>
+
+  <div className="cards-mision-vision">
+    <div className="card-info">
+      <h5>Misión</h5>
+      <p>
+        Brindar soluciones en vidriería y herrajes de alta calidad, garantizando
+        satisfacción y confianza a nuestros clientes. Buscamos superar expectativas
+        con cada producto y servicio.
+      </p>
+    </div>
+
+    <div className="card-info">
+      <h5>Visión</h5>
+      <p>
+        Ser la empresa líder en cristalería y herrajes en Nicaragua, innovando
+        constantemente en productos y servicios, promoviendo un crecimiento
+        sostenible y un servicio excepcional a nuestros clientes.
+      </p>
+    </div>
+
+    <div className="card-info">
+      <h5>Qué somos</h5>
+      <p>
+        Vidrimax es un sistema integral para la gestión de ventas, inventario y
+        control de productos de vidriería. Facilitamos la operación diaria de
+        tu negocio, permitiéndote tomar decisiones rápidas basadas en datos
+        confiables.
+      </p>
+    </div>
+  </div>
+</section>
     </div>
   );
 }

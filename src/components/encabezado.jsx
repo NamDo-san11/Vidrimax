@@ -10,14 +10,14 @@ import { db } from "../database/firebaseconfig";
 
 // Define los items de menú y a qué roles se les permite ver
 const menuItems = [
-  { to: "/inicio", icon: "bi-house", label: "Inicio", roles: ["administrador", "empleado"] },
-  { to: "/inventario", icon: "bi-box-seam", label: "Inventario", roles: ["administrador"] },
-  { to: "/catalogo", icon: "bi-front", label: "Catálogo", roles: ["administrador", "empleado"] },
-  { to: "/ventas", icon: "bi-receipt", label: "Ventas", roles: ["administrador", "empleado"] },
-  { to: "/empleados", icon: "bi-people", label: "Empleados", roles: ["administrador"] },
-  { to: "/pagos", icon: "bi-credit-card", label: "Pagos", roles: ["administrador"] },
-  { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["administrador"] },
-  { to: "/configuracion", icon: "bi-gear", label: "Configuración", roles: ["administrador"] },
+  { to: "/inicio", icon: "bi-house", label: "Inicio", roles: ["admin", "empleado"] },
+  { to: "/inventario", icon: "bi-box-seam", label: "Inventario", roles: ["admin"] },
+  { to: "/catalogo", icon: "bi-front", label: "Catálogo", roles: ["admin", "empleado"] },
+  { to: "/ventas", icon: "bi-receipt", label: "Ventas", roles: ["admin", "empleado"] },
+  { to: "/empleados", icon: "bi-people", label: "Empleados", roles: ["admin"] },
+  { to: "/pagos", icon: "bi-credit-card", label: "Pagos", roles: ["admin"] },
+  { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["admin"] },
+  { to: "/configuracion", icon: "bi-gear", label: "Configuración", roles: ["admin"] },
 ];
 
 const Encabezado = ({ children }) => {

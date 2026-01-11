@@ -89,3 +89,36 @@
     font-size: 1.8rem;
   }
 }
+
+/* MISIÓN, VISIÓN Y QUÉ SOMOS */
+.cards-mision-vision {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.card-info {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.8rem 1.5rem;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-info:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.12);
+}
+
+.card-info h5 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  color: #0b7f58;
+}
+
+.card-info p {
+  font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.5;
+}

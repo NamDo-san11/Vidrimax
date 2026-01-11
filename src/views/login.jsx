@@ -1,4 +1,3 @@
-// src/views/login.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
@@ -6,6 +5,8 @@ import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { appfirebase } from "../database/firebaseconfig";
 import { useAuth } from "../database/authcontext";
 import "../styles/login.css";
+
+import logo from "../assets/logoex.png"; // ✅ LOGO
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -32,8 +33,10 @@ const Login = () => {
     } catch (err) {
       console.error(err);
       let mensaje = "No se pudo iniciar sesión.";
-      if (err.code === "auth/invalid-credential") mensaje = "Correo o contraseña incorrectos.";
-      if (err.code === "auth/network-request-failed") mensaje = "Problema de conexión. Verifica tu internet.";
+      if (err.code === "auth/invalid-credential")
+        mensaje = "Correo o contraseña incorrectos.";
+      if (err.code === "auth/network-request-failed")
+        mensaje = "Problema de conexión. Verifica tu internet.";
       setError(mensaje);
     } finally {
       setLoading(false);
@@ -45,14 +48,17 @@ const Login = () => {
       <Container className="login-container">
         <Row className="justify-content-center w-100 g-0">
           <Col xs={12} sm={10} md={8} lg={6} xl={5} className="login-col">
+
+            {/* HERO */}
             <div className="login-hero">
               <div className="login-mark">
-                <span>VMI</span>
+                <img src={logo} alt="Vidrimax Logo" />
               </div>
               <h1 className="login-brand">Vidrimax</h1>
               <p className="login-brand-sub">Sistema de Gestión</p>
             </div>
 
+            {/* CARD */}
             <Card className="login-card">
               <Card.Body className="login-card-body">
                 <h2 className="login-welcome">Bienvenido</h2>
@@ -89,16 +95,20 @@ const Login = () => {
                     />
                   </Form.Group>
 
-                  <Button type="submit" className="login-btn" disabled={loading}>
+                  <Button type="submit" className="btn btn-outline-success w-100 " disabled={loading}>
                     {loading ? "Iniciando sesión..." : "Iniciar sesión →"}
                   </Button>
                 </Form>
 
-                <p className="login-hint">Acceso exclusivo para personal autorizado de Vidrimax.</p>
+                <p className="login-hint">
+                  Acceso exclusivo para personal autorizado de Vidrimax.
+                </p>
               </Card.Body>
             </Card>
 
-            <p className="login-footer">© 2024 Vidrimax. Todos los derechos reservados.</p>
+            <p className="login-footer">
+              © {new Date().getFullYear()} Vidrimax. Todos los derechos reservados.
+            </p>
           </Col>
         </Row>
       </Container>

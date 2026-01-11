@@ -15,8 +15,24 @@
   overflow: auto;
 
   background: radial-gradient(circle at top left, rgba(0, 199, 120, 0.22) 0%, rgba(0, 163, 108, 0.15) 38%, rgba(26, 64, 100, 0.12) 100%),
-              linear-gradient(135deg, #00a36c 0%, #1a4064 100%);
+  linear-gradient(135deg, #00a36c 0%, #1a4064 100%);
 }
+
+.login-mark img{
+  width: 80%;
+  height: auto;
+  object-fit: contain;
+}
+
+.login-btn{
+  color: #ffffff !important;
+}
+
+.login-btn:hover{
+  color: #ffffff !important;
+  filter: brightness(1.05);
+}
+
 
 .login-container{
   width: 100%;

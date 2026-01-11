@@ -224,7 +224,8 @@ body{
   justify-content: space-between;
 
   border-bottom: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.86);
+  /* degradado verde → azul */
+  background: linear-gradient(135deg, #1a4064 0%, #00a36c 100%);
   backdrop-filter: blur(16px);
 
   position: sticky;
@@ -234,6 +235,7 @@ body{
   width: 100%;
   box-sizing: border-box;
 }
+
 
 .topbar-title{
   margin: 0;
@@ -353,3 +355,4 @@ body{
 .login-page{
   margin-left: 0 !important;
 }
+
