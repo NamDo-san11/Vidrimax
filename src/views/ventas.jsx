@@ -19,9 +19,15 @@ function Ventas() {
   const [carrito, setCarrito] = useState([]);
   const [guardando, setGuardando] = useState(false);
 
-  // 🔍 Búsqueda
   const [busqueda, setBusqueda] = useState("");
 
+  // ===== Modal empleado y cliente =====
+  const [modalEmpleado, setModalEmpleado] = useState(false);
+  const [empleados, setEmpleados] = useState([]);
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState("");
+  const [cliente, setCliente] = useState("");
+
+  // ===== Cargar inventario =====
   useEffect(() => {
     const cargarInventario = async () => {
       try {
@@ -29,14 +35,13 @@ function Ventas() {
         const data = snap.docs.map(d => {
           const i = d.data();
           const stock = Number(i.stock_total ?? 0);
-          const vendidos = Number(i.vendidos ?? 0);
           return {
             id: d.id,
             nombre: i.nombre ?? "",
             color: i.color ?? "",
             categoria: i.categoria ?? "",
             precio: Number(i.precio_venta ?? 0),
-            existencia: Math.max(stock - vendidos, 0)
+            existencia: stock
           };
         });
         setInventario(data);
@@ -47,7 +52,21 @@ function Ventas() {
     cargarInventario();
   }, []);
 
-  // 🔍 Filtrado seguro
+  // ===== Cargar empleados =====
+  useEffect(() => {
+    const cargarEmpleados = async () => {
+      try {
+        const snap = await getDocs(collection(db, "empleados"));
+        const data = snap.docs.map(d => ({ id: d.id, nombre: d.data().nombre }));
+        setEmpleados(data);
+      } catch (e) {
+        console.error("Error cargando empleados:", e);
+      }
+    };
+    cargarEmpleados();
+  }, []);
+
+  // ===== Filtrado seguro =====
   const inventarioFiltrado = inventario.filter(p => {
     const nombre = String(p.nombre ?? "");
     const color = String(p.color ?? "");
@@ -61,9 +80,9 @@ function Ventas() {
     );
   });
 
+  // ===== Carrito =====
   const agregar = (p) => {
     if (p.existencia <= 0) return;
-
     const existe = carrito.find(i => i.id === p.id);
 
     if (existe) {
@@ -78,9 +97,7 @@ function Ventas() {
 
   const sumar = (id) => {
     setCarrito(carrito.map(i => {
-      if (i.id === id && i.cantidad < i.existencia) {
-        return { ...i, cantidad: i.cantidad + 1 };
-      }
+      if (i.id === id && i.cantidad < i.existencia) return { ...i, cantidad: i.cantidad + 1 };
       return i;
     }));
   };
@@ -95,148 +112,89 @@ function Ventas() {
 
   const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
 
-  // ================= FACTURA PDF =================
+  // ===== Generar PDF =====
+  const generarFacturaPDF = (factura) => {
+    const EMPRESA = {
+      nombre: "VIDRIMAX",
+      telefono: "Tel: 8888-8888",
+      direccion: "Barrio Central, Camoapa, Boaco",
+      frase: "Calidad y confianza en cada detalle"
+    };
 
-const generarFacturaPDF = (factura) => {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [140, 216] });
 
-  const EMPRESA = {
-    nombre: "VIDRIMAX",
-    telefono: "Tel: 8888-8888",
-    direccion: "Barrio Central, Camoapa, Boaco",
-    frase: "Calidad y confianza en cada detalle"
+    const M_LEFT = 6, M_RIGHT = 134, M_TOP = 12;
+    let y = M_TOP;
+
+    // Logo
+    const logoWidth = 30, logoHeight = 18, logoX = (140 - logoWidth) / 2;
+    doc.addImage(logoVidrimax, "PNG", logoX, y, logoWidth, logoHeight);
+    y += logoHeight + 2;
+
+    // Encabezado
+    doc.setFontSize(14); doc.text(EMPRESA.nombre, 70, y, { align: "center" });
+    y += 5; doc.setFontSize(9); doc.text(EMPRESA.frase, 70, y, { align: "center" });
+    y += 4; doc.text(EMPRESA.direccion, 70, y, { align: "center" });
+    y += 4; doc.text(EMPRESA.telefono, 70, y, { align: "center" });
+
+    y += 4; doc.setLineWidth(0.4); doc.line(M_LEFT, y, M_RIGHT, y);
+
+    // Datos de factura
+    y += 8; doc.setFontSize(9);
+    doc.text(`Factura #: ${factura.numero}`, M_LEFT, y);
+    doc.text(`Fecha: ${new Date(factura.fecha).toLocaleDateString()}`, M_RIGHT, y, { align: "right" });
+    y += 6; doc.text(`Cliente: ${factura.cliente}`, M_LEFT, y);
+    y += 6; doc.text(`Empleado: ${factura.empleado}`, M_LEFT, y);
+
+    // Cabecera tabla
+    y += 8; doc.setFontSize(8); doc.setLineWidth(0.3); doc.line(M_LEFT, y, M_RIGHT, y);
+    y += 5;
+    doc.text("Producto", M_LEFT + 2, y);
+    doc.text("Cant", 90, y, { align: "right" });
+    doc.text("Precio", 112, y, { align: "right" });
+    doc.text("Subt", 134, y, { align: "right" });
+    y += 3; doc.line(M_LEFT, y, M_RIGHT, y); y += 5;
+
+    factura.items.forEach((i) => {
+      const nombre = `${i.nombre} - ${i.color}`;
+      doc.text(nombre, M_LEFT + 2, y, { maxWidth: 75 });
+      doc.text(String(i.cantidad), 90, y, { align: "right" });
+      doc.text(`C$ ${i.precio.toFixed(2)}`, 112, y, { align: "right" });
+      doc.text(`C$ ${i.subtotal.toFixed(2)}`, 134, y, { align: "right" });
+      y += 6;
+      if (y > 185) { doc.addPage(); y = M_TOP + 10; }
+    });
+
+    // Total
+    y += 2; doc.setLineWidth(0.4); doc.line(M_LEFT, y, M_RIGHT, y);
+    y += 8; doc.setFontSize(11);
+    doc.text(`TOTAL: C$ ${factura.total.toFixed(2)}`, M_RIGHT, y, { align: "right" });
+
+    // Pie
+    y += 14; doc.setFontSize(8);
+    doc.text("Gracias por su preferencia", 70, y, { align: "center" });
+    doc.text("Factura válida como comprobante de venta", 70, y + 5, { align: "center" });
+
+    doc.save(`Factura_${factura.numero}.pdf`);
   };
 
-  // 📄 Media carta vertical
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: [140, 216]
-  });
-
-  // === MÁRGENES TÉCNICOS ===
-  const M_LEFT = 6;
-  const M_RIGHT = 134;
-  const M_TOP = 12;
-  let y = M_TOP;
-
-  // ===== LOGO =====
-  const logoWidth = 30;
-  const logoHeight = 18;
-  const logoX = (140 - logoWidth) / 2;
-
-  doc.addImage(logoVidrimax, "PNG", logoX, y, logoWidth, logoHeight);
-  y += logoHeight + 2;
-
-  // ===== ENCABEZADO =====
-  doc.setFontSize(14);
-  doc.text(EMPRESA.nombre, 70, y, { align: "center" });
-
-  y += 5;
-  doc.setFontSize(9);
-  doc.text(EMPRESA.frase, 70, y, { align: "center" });
-
-  y += 4;
-  doc.text(EMPRESA.direccion, 70, y, { align: "center" });
-
-  y += 4;
-  doc.text(EMPRESA.telefono, 70, y, { align: "center" });
-
-  // línea separadora
-  y += 4;
-  doc.setLineWidth(0.4);
-  doc.line(M_LEFT, y, M_RIGHT, y);
-
-  // ===== DATOS FACTURA =====
-  y += 8;
-  doc.setFontSize(9);
-  doc.text(`Factura #: ${factura.numero}`, M_LEFT, y);
-  doc.text(
-    `Fecha: ${new Date(factura.fecha).toLocaleDateString()}`,
-    M_RIGHT,
-    y,
-    { align: "right" }
-  );
-
-  y += 6;
-  doc.text(`Cliente: ${factura.cliente}`, M_LEFT, y);
-
-  // ===== CABECERA TABLA =====
-  y += 8;
-  doc.setFontSize(8);
-  doc.setLineWidth(0.3);
-  doc.line(M_LEFT, y, M_RIGHT, y);
-
-  y += 5;
-  doc.text("Producto", M_LEFT + 2, y);
-  doc.text("Cant", 90, y, { align: "right" });
-  doc.text("Precio", 112, y, { align: "right" });
-  doc.text("Subt", 134, y, { align: "right" });
-
-  y += 3;
-  doc.line(M_LEFT, y, M_RIGHT, y);
-  y += 5;
-
-  // ===== ITEMS =====
-  factura.items.forEach((i) => {
-    const nombre = `${i.nombre} - ${i.color}`;
-
-    doc.text(nombre, M_LEFT + 2, y, { maxWidth: 75 });
-    doc.text(String(i.cantidad), 90, y, { align: "right" });
-    doc.text(`C$ ${i.precio.toFixed(2)}`, 112, y, { align: "right" });
-    doc.text(`C$ ${i.subtotal.toFixed(2)}`, 134, y, { align: "right" });
-
-    y += 6;
-
-    if (y > 185) {
-      doc.addPage();
-      y = M_TOP + 10;
-    }
-  });
-
-  // ===== TOTAL =====
-  y += 2;
-  doc.setLineWidth(0.4);
-  doc.line(M_LEFT, y, M_RIGHT, y);
-
-  y += 8;
-  doc.setFontSize(11);
-  doc.text(`TOTAL: C$ ${factura.total.toFixed(2)}`, M_RIGHT, y, {
-    align: "right"
-  });
-
-  // ===== PIE =====
-  y += 14;
-  doc.setFontSize(8);
-  doc.text("Gracias por su preferencia", 70, y, { align: "center" });
-  doc.text("Factura válida como comprobante de venta", 70, y + 5, { align: "center" });
-
-  doc.save(`Factura_${factura.numero}.pdf`);
-};
-
-  // ================= GUARDAR VENTA =================
-  const guardarVenta = async () => {
-    if (carrito.length === 0) return;
-
-    const cliente = prompt("Nombre del cliente:");
-    if (!cliente) return;
-
+  // ===== Guardar venta =====
+  const guardarVentaFinal = async () => {
+    setModalEmpleado(false);
     setGuardando(true);
 
     try {
       for (const item of carrito) {
         const ref = doc(db, "inventario", item.id);
         const snap = await getDoc(ref);
-        const stock = snap.data().stock_total ?? 0;
-        const vendidos = snap.data().vendidos ?? 0;
-
-        if (item.cantidad > stock - vendidos) {
-          throw new Error(`Stock insuficiente: ${item.nombre}`);
-        }
+        const stockActual = snap.data().stock_total ?? 0;
+        if (item.cantidad > stockActual) throw new Error(`Stock insuficiente: ${item.nombre}`);
       }
 
       const factura = {
         numero: Date.now(),
         cliente,
+        empleado: empleadoSeleccionado,
         fecha: new Date(),
         items: carrito.map(i => ({
           id: i.id,
@@ -252,19 +210,19 @@ const generarFacturaPDF = (factura) => {
 
       await addDoc(collection(db, "ventas"), factura);
 
+      // Actualizar stock
       for (const item of carrito) {
         const ref = doc(db, "inventario", item.id);
         const snap = await getDoc(ref);
-        const vendidosActuales = snap.data().vendidos ?? 0;
-        await updateDoc(ref, {
-          vendidos: vendidosActuales + item.cantidad
-        });
+        const stockActual = snap.data().stock_total ?? 0;
+        await updateDoc(ref, { stock_total: stockActual - item.cantidad });
       }
 
       generarFacturaPDF(factura);
-
       alert("Venta guardada y factura generada");
       setCarrito([]);
+      setCliente("");
+      setEmpleadoSeleccionado("");
       setBusqueda("");
     } catch (e) {
       alert(e.message);
@@ -276,12 +234,10 @@ const generarFacturaPDF = (factura) => {
   return (
     <div className="ventas-container">
       <h2>Nueva Venta</h2>
-
       <div className="ventas-grid">
         {/* INVENTARIO */}
         <div className="card">
           <h3>Inventario</h3>
-
           <input
             className="inv-search-input"
             type="text"
@@ -289,7 +245,6 @@ const generarFacturaPDF = (factura) => {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
-
           {inventarioFiltrado.map(p => (
             <div className="inv-row" key={p.id}>
               <div>
@@ -297,7 +252,6 @@ const generarFacturaPDF = (factura) => {
                 <span style={{ color: "#999" }}>({p.color})</span>
                 <small>Stock: {p.existencia}</small>
               </div>
-
               <button
                 className={`btn-agregar ${p.existencia === 0 ? "disabled" : ""}`}
                 disabled={p.existencia === 0}
@@ -312,17 +266,14 @@ const generarFacturaPDF = (factura) => {
         {/* CARRITO */}
         <div className="card">
           <h3>Venta</h3>
-
           {carrito.map(i => (
             <div className="cart-row" key={i.id}>
               <span>{i.nombre} ({i.color})</span>
-
               <div className="qty-box">
                 <button className="qty-btn" onClick={() => restar(i.id)}>−</button>
                 <div className="qty-value">{i.cantidad}</div>
                 <button className="qty-btn" onClick={() => sumar(i.id)}>+</button>
               </div>
-
               <span className="price">
                 C$ {(i.precio * i.cantidad).toFixed(2)}
               </span>
@@ -335,13 +286,55 @@ const generarFacturaPDF = (factura) => {
 
           <button
             className="btn-confirmar"
-            onClick={guardarVenta}
-            disabled={guardando}
+            onClick={() => setModalEmpleado(true)}
+            disabled={guardando || carrito.length === 0}
           >
             {guardando ? "Guardando..." : "Confirmar Venta"}
           </button>
         </div>
       </div>
+
+      {/* Modal empleado y cliente */}
+      {modalEmpleado && (
+        <div className="modal-overlay" onClick={() => setModalEmpleado(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>Información de la venta</h3>
+            <label>Empleado</label>
+            <select
+              value={empleadoSeleccionado}
+              onChange={e => setEmpleadoSeleccionado(e.target.value)}
+            >
+              <option value="">Selecciona un empleado</option>
+              {empleados.map(emp => (
+                <option key={emp.id} value={emp.nombre}>{emp.nombre}</option>
+              ))}
+            </select>
+
+            <label>Cliente</label>
+            <input
+              type="text"
+              placeholder="Nombre del cliente"
+              value={cliente}
+              onChange={e => setCliente(e.target.value)}
+            />
+
+            <div className="modal-actions">
+              <button onClick={() => setModalEmpleado(false)}>Cancelar</button>
+              <button
+                onClick={() => {
+                  if (!empleadoSeleccionado || !cliente) {
+                    alert("Selecciona un empleado y escribe el cliente");
+                    return;
+                  }
+                  guardarVentaFinal();
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -133,3 +133,177 @@
 .is-off {
   opacity: 0.6;
 }
+
+/* Contenedor general */
+.empCat-page {
+  padding: 16px;
+  background: var(--color-bg);
+  min-height: 100vh;
+  font-family: system-ui, sans-serif;
+}
+
+.empCat-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* HEADER */
+.empCat-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.empCat-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin: 4px 0 12px;
+}
+
+/* TOOLBAR */
+.empCat-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.empCat-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  padding: 6px 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.empCat-search input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 0.95rem;
+  background: transparent;
+}
+
+.empCat-filter {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  font-size: 0.95rem;
+}
+
+/* GRID */
+.empCat-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/* CARD */
+.empCat-card {
+  background: var(--color-surface);
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.empCat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+.empCat-card.is-off {
+  opacity: 0.5;
+}
+
+/* CARD TOP */
+.empCat-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.empCat-iconbox {
+  width: 32px;
+  height: 32px;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.empCat-pill {
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* NOMBRE */
+.empCat-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+/* META */
+.empCat-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.87rem;
+}
+
+.empCat-line {
+  display: flex;
+  justify-content: space-between;
+}
+
+.empCat-value {
+  font-weight: 600;
+}
+
+.empCat-money {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* STOCK BAJO */
+.low-stock {
+  color: #d9534f;
+  font-weight: 700;
+  position: relative;
+}
+
+.empCat-badge {
+  background: #d9534f;
+  color: white;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+/* EMPTY */
+.empCat-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-top: 30px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .empCat-grid {
+    grid-template-columns: 1fr;
+  }
+}

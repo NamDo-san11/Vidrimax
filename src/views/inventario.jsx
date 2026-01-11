@@ -97,6 +97,29 @@ const Inventario = () => {
     return "";
   };
 
+  const agregarStock = async (item) => {
+  const cantidad = prompt(`Ingrese la cantidad a agregar a ${item.nombre}:`, "0");
+  if (!cantidad) return;
+  const cantNum = Number(cantidad);
+  if (!Number.isFinite(cantNum) || cantNum <= 0) {
+    alert("Cantidad inválida.");
+    return;
+  }
+
+  try {
+    const ref = doc(db, "inventario", item.id);
+    await updateDoc(ref, {
+      stock_total: (Number(item.stock_total) + cantNum),
+      actualizadoEn: serverTimestamp()
+    });
+    await cargar(); // recarga los datos
+  } catch (e) {
+    console.error(e);
+    alert("No se pudo actualizar el stock.");
+  }
+  };
+
+
   const guardar = async (e) => {
     e.preventDefault();
     const msg = validar();
@@ -202,6 +225,7 @@ const Inventario = () => {
                 <div className="emp-td">{item.stock_total}</div>
                 <div className="emp-td emp-actions">
                   <button className="emp-btn" onClick={()=>abrirDetalle(item)}>Ver</button>
+                  <button className="emp-primary" onClick={() => agregarStock(item)}>+ Stock</button>
                 </div>
               </div>
             ))}

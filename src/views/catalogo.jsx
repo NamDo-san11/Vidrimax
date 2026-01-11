@@ -23,8 +23,6 @@ const CatalogoEmpleados = () => {
       const rows = snap.docs.map((d) => {
         const r = d.data();
         const stock_total = Number(r.stock_total ?? 0);
-        const vendidos = Number(r.vendidos ?? 0);
-        const existencia = Math.max(stock_total - vendidos, 0);
 
         return {
           id: d.id,
@@ -33,8 +31,6 @@ const CatalogoEmpleados = () => {
           color: r.color ?? "",
           categoria: r.categoria ?? "Sin categoría",
           stock_total,
-          vendidos,
-          existencia,
           precio_venta: Number(r.precio_venta ?? 0),
           activo: Boolean(r.activo ?? true),
         };
@@ -50,7 +46,6 @@ const CatalogoEmpleados = () => {
 
   useEffect(() => {
     fetchMateriales();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const categorias = useMemo(() => {
@@ -75,6 +70,7 @@ const CatalogoEmpleados = () => {
   return (
     <div className="empCat-page">
       <div className="empCat-container">
+        {/* HEADER */}
         <div className="empCat-head">
           <div>
             <h2 className="empCat-title">Catálogo</h2>
@@ -82,6 +78,7 @@ const CatalogoEmpleados = () => {
           </div>
         </div>
 
+        {/* FILTROS */}
         <div className="empCat-toolbar">
           <div className="empCat-search">
             <i className="bi bi-search" />
@@ -105,6 +102,7 @@ const CatalogoEmpleados = () => {
           </select>
         </div>
 
+        {/* GRID DE PRODUCTOS */}
         {loading ? (
           <div className="empCat-empty">Cargando inventario...</div>
         ) : filtrados.length === 0 ? (
@@ -133,7 +131,12 @@ const CatalogoEmpleados = () => {
                   </div>
                   <div className="empCat-line">
                     <span>Existencia:</span>
-                    <span className="empCat-value">{m.existencia}</span>
+                    <span className={`empCat-value ${m.stock_total < 5 ? "low-stock" : ""}`}>
+                      {m.stock_total}
+                      {m.stock_total < 5 && (
+                        <span className="empCat-badge">Stock bajo</span>
+                      )}
+                    </span>
                   </div>
                   <div className="empCat-line">
                     <span>Precio:</span>
@@ -150,3 +153,4 @@ const CatalogoEmpleados = () => {
 };
 
 export default CatalogoEmpleados;
+  
