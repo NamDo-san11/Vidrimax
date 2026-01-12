@@ -87,8 +87,8 @@ const GestionVentas = () => {
   const generarFacturaPDF = (factura) => {
     const EMPRESA = {
       nombre: "VIDRIMAX",
-      telefono: "Tel: 8888-8888",
-      direccion: "Barrio Central, Camoapa, Boaco",
+      telefono: "Tel: 5802-8225",
+      direccion: "Del Hotel Pergolas 100 v alsur, 20 v al Este",
       frase: "Calidad y confianza en cada detalle"
     };
 
