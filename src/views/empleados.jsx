@@ -211,7 +211,7 @@ const Empleados = () => {
           <p className="emp-subtitle">Agrega, edita y elimina empleados</p>
         </div>
         <button className="emp-primary" onClick={abrirNuevo} disabled={saving}>
-          + Nuevo empleado
+          + Nuevo
         </button>
       </div>
 

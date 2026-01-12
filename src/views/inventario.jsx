@@ -187,7 +187,7 @@ const Inventario = () => {
           <p className="emp-subtitle">Agrega, edita y elimina artículos</p>
         </div>
         <button className="emp-primary" onClick={abrirNuevo} disabled={saving}>
-          + Nuevo artículo
+          + Nuevo
         </button>
       </div>
 
