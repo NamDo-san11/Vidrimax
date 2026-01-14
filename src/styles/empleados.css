@@ -1,3 +1,38 @@
+/* ===============================
+   MODAL FORMULARIO – AJUSTE FINAL
+   =============================== */
+
+/* Modal más ancho en desktop */
+@media (min-width: 992px) {
+  .emp-modal-card {
+    max-width: 900px; /* antes 520px */
+    width: 95%;
+  }
+}
+
+/* Control de altura y scroll interno */
+.emp-modal-card {
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scroll solo dentro del formulario */
+.emp-form {
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Scroll discreto */
+.emp-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.emp-form::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 6px;
+}
+
 /* src/styles/empleados.css */
 .emp-page{
   width: 100%;
