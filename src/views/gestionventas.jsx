@@ -144,7 +144,7 @@ const GestionVentas = () => {
     // Pie
     y += 14; doc.setFontSize(8);
     doc.text("Gracias por su preferencia", 70, y, { align: "center" });
-    doc.text("Factura válida como comprobante de venta", 70, y + 5, { align: "center" });
+    doc.text("Factura válida como comprobante de venta, Revisen su mercancía y no se aceptan devoluciones", 70, y + 5, { align: "center" });
 
     doc.save(`Factura_${factura.numero}.pdf`);
   };
