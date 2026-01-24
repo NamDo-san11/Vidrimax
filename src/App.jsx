@@ -13,9 +13,12 @@ import Ventas from "./views/ventas";
 import Empleados from "./views/empleados";
 import Configuracion from "./views/configuracion";
 import GestionVentas from "./views/gestionventas";
+import Catalogoventa from "./views/CatalogoVentanas";
 import Pagos from "./views/pagos";
 import Catalogo from "./views/catalogo";
-
+import VentanasAdmin from "./views/ventanasAdmin";
+import CatalogoVentanas from "./views/CatalogoVentanas";
+import CalcularVentana from "./views/CalcularVentana";
 import "./App.css";
 
 const withLayout = (PageComponent) => (
@@ -39,9 +42,25 @@ function App() {
             path="/catalogo"
             element={<ProtectedRoute element={withLayout(Catalogo)} />}
           />
+          < Route
+            path="/catalogoventanas"
+            element={<ProtectedRoute element={withLayout(CatalogoVentanas)} />}
+          />
+          < Route
+            path="/calcularventana"
+            element={<ProtectedRoute element={withLayout(CalcularVentana)} />}
+          />
+          <Route
+            path="/ventanasadmin"
+            element={<ProtectedRoute element={withLayout(VentanasAdmin)} />}
+          />
           <Route
             path="/inventario"
             element={<ProtectedRoute element={withLayout(Inventario)} />}
+          />
+          <Route
+            path="/catalogoventa"
+            element={<ProtectedRoute element={withLayout(Catalogoventa)} />}
           />
           <Route
             path="/gestionventas"

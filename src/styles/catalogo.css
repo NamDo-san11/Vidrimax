@@ -1,3 +1,117 @@
+.empCat-pagination{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:18px;
+}
+
+.empCat-pageBtn{
+  background:#0b5ed7;
+  color:#fff;
+  border:none;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.empCat-pageBtn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.empCat-pageNumbers{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.empCat-pageNum{
+  border:1px solid #d0d7de;
+  background:#fff;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.empCat-pageNum.active{
+  background:#111827;
+  color:#fff;
+  border-color:#111827;
+}
+
+.empCat-dots{
+  padding:0 8px;
+  opacity:.7;
+}
+
+.empCat-pageInfo{
+  margin-top:10px;
+  font-size:13px;
+  opacity:.7;
+  text-align:center;
+}
+
+/* Botón volver */
+.empCat-backBtn{
+  background:#fff;
+  border:1px solid #d0d7de;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+/* Card detalle */
+.empCat-detailCard{
+  background:#fff;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.empCat-detailTitle{
+  margin:12px 0 6px;
+}
+
+.empCat-detailDesc{
+  opacity:.8;
+  margin-bottom:16px;
+}
+
+.empCat-detailGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.empCat-detailItem{
+  border:1px solid #e6e6e6;
+  border-radius:12px;
+  padding:12px;
+}
+
+.empCat-detailItem .label{
+  display:block;
+  font-size:12px;
+  opacity:.7;
+}
+
+.empCat-detailItem .value{
+  display:block;
+  font-weight:700;
+  margin-top:2px;
+}
+
+
 /* src/styles/catalogoEmpleados.css */
 
 .empCat-page {

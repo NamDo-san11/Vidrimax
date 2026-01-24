@@ -1,5 +1,5 @@
 // src/views/ventas.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   collection,
   getDocs,
@@ -14,12 +14,18 @@ import "../styles/ventas.css";
 import jsPDF from "jspdf";
 import logoVidrimax from "../assets/logoex.png";
 
+// ✅ Ajusta cuantos productos por página quieres ver
+const PAGE_SIZE = 10;
+
 function Ventas() {
   const [inventario, setInventario] = useState([]);
   const [carrito, setCarrito] = useState([]);
   const [guardando, setGuardando] = useState(false);
 
   const [busqueda, setBusqueda] = useState("");
+
+  // ✅ Paginación inventario
+  const [pageInv, setPageInv] = useState(1);
 
   // ===== Modal empleado y cliente =====
   const [modalEmpleado, setModalEmpleado] = useState(false);
@@ -67,18 +73,56 @@ function Ventas() {
   }, []);
 
   // ===== Filtrado seguro =====
-  const inventarioFiltrado = inventario.filter(p => {
-    const nombre = String(p.nombre ?? "");
-    const color = String(p.color ?? "");
-    const categoria = String(p.categoria ?? "");
-    const busq = busqueda.toLowerCase();
+  const inventarioFiltrado = useMemo(() => {
+    const busq = (busqueda || "").toLowerCase();
 
-    return (
-      nombre.toLowerCase().includes(busq) ||
-      color.toLowerCase().includes(busq) ||
-      categoria.toLowerCase().includes(busq)
-    );
-  });
+    return inventario.filter(p => {
+      const nombre = String(p.nombre ?? "").toLowerCase();
+      const color = String(p.color ?? "").toLowerCase();
+      const categoria = String(p.categoria ?? "").toLowerCase();
+
+      return (
+        nombre.includes(busq) ||
+        color.includes(busq) ||
+        categoria.includes(busq)
+      );
+    });
+  }, [inventario, busqueda]);
+
+  // ✅ Reset de página al buscar
+  useEffect(() => {
+    setPageInv(1);
+  }, [busqueda]);
+
+  // ✅ Slice paginado
+  const totalPagesInv = Math.max(1, Math.ceil(inventarioFiltrado.length / PAGE_SIZE));
+  const safePageInv = Math.min(pageInv, totalPagesInv);
+
+  const inventarioPageItems = useMemo(() => {
+    const start = (safePageInv - 1) * PAGE_SIZE;
+    return inventarioFiltrado.slice(start, start + PAGE_SIZE);
+  }, [inventarioFiltrado, safePageInv]);
+
+  const pagesInv = useMemo(() => {
+    // paginado bonito con ...
+    const maxButtons = 7;
+    if (totalPagesInv <= maxButtons) {
+      return Array.from({ length: totalPagesInv }, (_, i) => i + 1);
+    }
+
+    const left = Math.max(1, safePageInv - 2);
+    const right = Math.min(totalPagesInv, safePageInv + 2);
+
+    const arr = [];
+    arr.push(1);
+    if (left > 2) arr.push("...");
+    for (let p = left; p <= right; p++) {
+      if (p !== 1 && p !== totalPagesInv) arr.push(p);
+    }
+    if (right < totalPagesInv - 1) arr.push("...");
+    arr.push(totalPagesInv);
+    return arr;
+  }, [safePageInv, totalPagesInv]);
 
   // ===== Carrito =====
   const agregar = (p) => {
@@ -117,7 +161,7 @@ function Ventas() {
     const EMPRESA = {
       nombre: "VIDRIMAX",
       telefono: "Tel: 5802-8225",
-      direccion: "Del Hotel Pergolas 100 v alsur, 20 v al Este",
+      direccion: "Del Hotel Pergolas 100 v al Sur, 20 v al Este",
       frase: "Calidad y confianza en cada detalle"
     };
 
@@ -234,10 +278,12 @@ function Ventas() {
   return (
     <div className="ventas-container">
       <h2>Nueva Venta</h2>
+
       <div className="ventas-grid">
         {/* INVENTARIO */}
         <div className="card">
           <h3>Inventario</h3>
+
           <input
             className="inv-search-input"
             type="text"
@@ -245,13 +291,16 @@ function Ventas() {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
-          {inventarioFiltrado.map(p => (
+
+          {/* LISTA PAGINADA */}
+          {inventarioPageItems.map(p => (
             <div className="inv-row" key={p.id}>
               <div>
                 <strong>{p.nombre}</strong>{" "}
                 <span style={{ color: "#999" }}>({p.color})</span>
                 <small>Stock: {p.existencia}</small>
               </div>
+
               <button
                 className={`btn-agregar ${p.existencia === 0 ? "disabled" : ""}`}
                 disabled={p.existencia === 0}
@@ -261,11 +310,55 @@ function Ventas() {
               </button>
             </div>
           ))}
+
+          {/* ✅ PAGINACIÓN */}
+          {inventarioFiltrado.length > 0 && (
+            <>
+              <div className="ventas-pagination">
+                <button
+                  className="ventas-pageBtn"
+                  disabled={safePageInv === 1}
+                  onClick={() => setPageInv(p => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+
+                <div className="ventas-pageNumbers">
+                  {pagesInv.map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`dots-${idx}`} className="ventas-dots">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        className={`ventas-pageNum ${p === safePageInv ? "active" : ""}`}
+                        onClick={() => setPageInv(p)}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <button
+                  className="ventas-pageBtn"
+                  disabled={safePageInv === totalPagesInv}
+                  onClick={() => setPageInv(p => Math.min(totalPagesInv, p + 1))}
+                >
+                  Siguiente
+                </button>
+              </div>
+
+              <div className="ventas-pageInfo">
+                Mostrando {(safePageInv - 1) * PAGE_SIZE + 1}–{Math.min(safePageInv * PAGE_SIZE, inventarioFiltrado.length)} de {inventarioFiltrado.length}
+              </div>
+            </>
+          )}
         </div>
 
         {/* CARRITO */}
         <div className="card">
           <h3>Venta</h3>
+
           {carrito.map(i => (
             <div className="cart-row" key={i.id}>
               <span>{i.nombre} ({i.color})</span>
@@ -299,6 +392,7 @@ function Ventas() {
         <div className="modal-overlay" onClick={() => setModalEmpleado(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <h3>Información de la venta</h3>
+
             <label>Empleado</label>
             <select
               value={empleadoSeleccionado}

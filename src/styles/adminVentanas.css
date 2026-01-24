@@ -1,0 +1,70 @@
+/* CONTENEDOR GENERAL */
+.admin-ventanas {
+  max-width: 1200px;
+  margin: auto;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+/* TARJETA PRINCIPAL */
+.admin-ventanas .card {
+  border-radius: 12px;
+  border: none;
+}
+
+/* HEADER */
+.admin-ventanas .card-header {
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, #212529, #343a40);
+}
+
+/* INPUTS */
+.admin-ventanas .form-control {
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.admin-ventanas .form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+}
+
+/* BLOQUE DE MATERIALES */
+.material-row {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* BOTÓN ELIMINAR MATERIAL */
+.material-row .btn-danger {
+  border-radius: 8px;
+}
+
+/* BOTÓN AGREGAR MATERIAL */
+.admin-ventanas .btn-outline-primary {
+  border-radius: 20px;
+  padding: 6px 18px;
+}
+
+/* FOOTER */
+.admin-ventanas .card-footer {
+  background: #f1f3f5;
+  border-radius: 0 0 12px 12px;
+}
+
+/* BOTÓN GUARDAR */
+.admin-ventanas .btn-success {
+  border-radius: 25px;
+  padding: 8px 22px;
+  font-weight: 600;
+}
+
+/* CHECKBOX X Y Z */
+.admin-ventanas .form-check-input {
+  cursor: pointer;
+}
+
+.admin-ventanas .form-check-label {
+  font-weight: 500;
+}
