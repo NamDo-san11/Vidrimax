@@ -15,6 +15,7 @@ import Configuracion from "./views/configuracion";
 import GestionVentas from "./views/gestionventas";
 import Catalogoventa from "./views/CatalogoVentanas";
 import Pagos from "./views/pagos";
+import VentasVentanas from "./views/VentaVentanas";
 import Catalogo from "./views/catalogo";
 import VentanasAdmin from "./views/ventanasAdmin";
 import CatalogoVentanas from "./views/CatalogoVentanas";
@@ -41,6 +42,10 @@ function App() {
           <Route
             path="/catalogo"
             element={<ProtectedRoute element={withLayout(Catalogo)} />}
+          />
+          <Route
+            path="/ventasventanas"
+            element={<ProtectedRoute element={withLayout(VentasVentanas)} />}
           />
           < Route
             path="/catalogoventanas"

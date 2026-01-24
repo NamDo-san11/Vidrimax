@@ -19,6 +19,7 @@ const menuItems = [
   { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["admin"] },
   { to: "/catalogoventanas", icon: "bi-card-list", label: "Administrar Ventanas", roles: ["admin"] },
   { to: "/calcularventana", icon: "bi-calculator", label: "Calcular Ventana", roles: ["empleado","admin"] },
+  { to: "/ventasventanas", icon: "bi-cart4", label: "Ventas de Ventanas", roles: ["empleado","admin"] },
 ];
 
 const Encabezado = ({ children }) => {
