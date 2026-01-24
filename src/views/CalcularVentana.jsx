@@ -1,14 +1,6 @@
 // src/views/VentasVentanas.jsx
 import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  doc,
-  getDoc,
-  updateDoc,
-  Timestamp
-} from "firebase/firestore";
+import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { evaluarFormula } from "../components/utils/formulas";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -37,6 +29,10 @@ export default function VentasVentanas() {
   const [x, setX] = useState("0");
   const [y, setY] = useState("0");
   const [z, setZ] = useState("0");
+
+  // ✅ NUEVO: color de la ventana
+  const [color, setColor] = useState("");
+
   const [cantidad, setCantidad] = useState(1);
 
   // ===== Tasa =====
@@ -75,6 +71,7 @@ export default function VentasVentanas() {
     setX("0");
     setY("0");
     setZ("0");
+    setColor("");
     setCantidad(1);
     setError("");
   }, [tipoId]);
@@ -85,6 +82,7 @@ export default function VentasVentanas() {
     if (!ancho || !alto) throw new Error("Ingresa ancho y alto.");
     if (Number(ancho) <= 0 || Number(alto) <= 0) throw new Error("Medidas inválidas.");
     if (Number(tasaUSD) <= 0) throw new Error("Tasa USD inválida.");
+    if (!color.trim()) throw new Error("Escribe el color.");
 
     const ctx = {
       ancho: Number(ancho),
@@ -126,6 +124,10 @@ export default function VentasVentanas() {
         id: `${tipoId}_${Date.now()}`,
         tipoId,
         tipoNombre: tipoSeleccionado.nombre,
+
+        // ✅ NUEVO: color
+        color: color.trim(),
+
         ancho: ctx.ancho,
         alto: ctx.alto,
         x: ctx.x,
@@ -145,16 +147,14 @@ export default function VentasVentanas() {
       setX("0");
       setY("0");
       setZ("0");
+      setColor("");
       setCantidad(1);
     } catch (e) {
       setError(e.message || "Error al agregar al carrito.");
     }
   };
 
-  const quitarDelCarrito = (id) => {
-    setCarrito((prev) => prev.filter((i) => i.id !== id));
-  };
-
+  const quitarDelCarrito = (id) => setCarrito((prev) => prev.filter((i) => i.id !== id));
   const vaciarCarrito = () => setCarrito([]);
 
   const total = useMemo(
@@ -168,7 +168,7 @@ export default function VentasVentanas() {
     return total / t;
   }, [total, tasaUSD]);
 
-  // ===== PDF (misma plantilla) =====
+  // ===== PDF =====
   const generarFacturaVentanasPDF = (factura) => {
     const EMPRESA = {
       nombre: "VIDRIMAX",
@@ -206,14 +206,14 @@ export default function VentasVentanas() {
     // Cabecera tabla
     yPos += 8; docpdf.setFontSize(8); docpdf.setLineWidth(0.3); docpdf.line(M_LEFT, yPos, M_RIGHT, yPos);
     yPos += 5;
-    docpdf.text("Ventana", M_LEFT + 2, yPos);
+    docpdf.text("Ventana (Color)", M_LEFT + 2, yPos);
     docpdf.text("Cant", 86, yPos, { align: "right" });
     docpdf.text("Unit", 110, yPos, { align: "right" });
     docpdf.text("Subt", 134, yPos, { align: "right" });
     yPos += 3; docpdf.line(M_LEFT, yPos, M_RIGHT, yPos); yPos += 5;
 
     factura.items.forEach((i) => {
-      const base = `${i.tipoNombre} (${Number(i.ancho).toFixed(2)} x ${Number(i.alto).toFixed(2)})`;
+      const base = `${i.tipoNombre} - ${i.color} (${Number(i.ancho).toFixed(2)} x ${Number(i.alto).toFixed(2)})`;
       const vars =
         (Number(i.x) || Number(i.y) || Number(i.z))
           ? ` X:${Number(i.x).toFixed(3)} Y:${Number(i.y).toFixed(3)} Z:${Number(i.z).toFixed(3)}`
@@ -270,6 +270,7 @@ export default function VentasVentanas() {
         items: carrito.map((i) => ({
           tipoId: i.tipoId,
           tipoNombre: i.tipoNombre,
+          color: i.color, // ✅ NUEVO
           ancho: i.ancho,
           alto: i.alto,
           x: i.x,
@@ -284,13 +285,11 @@ export default function VentasVentanas() {
         totalUSD
       };
 
-      // Guardar en Firestore (ventas)
       await addDoc(collection(db, "ventas"), {
         ...factura,
         fecha: Timestamp.now()
       });
 
-      // Generar PDF
       generarFacturaVentanasPDF(factura);
 
       alert("Venta de ventanas guardada y factura generada ✅");
@@ -306,9 +305,7 @@ export default function VentasVentanas() {
   };
 
   // ===== UI =====
-  if (cargandoTipos) {
-    return <div className="text-center mt-4">Cargando tipos de ventanas…</div>;
-  }
+  if (cargandoTipos) return <div className="text-center mt-4">Cargando tipos de ventanas…</div>;
 
   return (
     <div className="container my-4">
@@ -346,18 +343,11 @@ export default function VentasVentanas() {
 
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Tipo de ventana</label>
-                  <select
-                    className="form-select"
-                    value={tipoId}
-                    onChange={(e) => setTipoId(e.target.value)}
-                  >
+                  <select className="form-select" value={tipoId} onChange={(e) => setTipoId(e.target.value)}>
                     {tipos.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.nombre}
-                      </option>
+                      <option key={t.id} value={t.id}>{t.nombre}</option>
                     ))}
                   </select>
-
                   {tipoSeleccionado?.descripcion ? (
                     <div className="text-muted mt-1" style={{ fontSize: 13 }}>
                       {tipoSeleccionado.descripcion}
@@ -365,105 +355,68 @@ export default function VentasVentanas() {
                   ) : null}
                 </div>
 
+                {/* ✅ NUEVO: Color */}
+                <div className="col-md-6">
+                  <label className="form-label fw-bold">Color</label>
+                  <input
+                    className="form-control"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    placeholder="Ej: Champán, Blanco, Natural..."
+                  />
+                </div>
+
                 <div className="col-md-2">
                   <label className="form-label fw-bold">Alto (m)</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    className="form-control"
-                    value={alto}
-                    onChange={(e) => setAlto(e.target.value)}
-                    placeholder="Ej: 1.00"
-                  />
+                  <input type="number" step="0.001" className="form-control" value={alto} onChange={(e) => setAlto(e.target.value)} />
                 </div>
 
                 <div className="col-md-2">
                   <label className="form-label fw-bold">Ancho (m)</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    className="form-control"
-                    value={ancho}
-                    onChange={(e) => setAncho(e.target.value)}
-                    placeholder="Ej: 1.00"
-                  />
+                  <input type="number" step="0.001" className="form-control" value={ancho} onChange={(e) => setAncho(e.target.value)} />
                 </div>
 
                 <div className="col-md-2">
                   <label className="form-label fw-bold">Cantidad</label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="form-control"
-                    value={cantidad}
-                    onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
-                  />
+                  <input type="number" min="1" className="form-control" value={cantidad} onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))} />
                 </div>
 
                 {/* Variables X/Y/Z */}
                 {tipoSeleccionado?.usaX ? (
                   <div className="col-md-4">
                     <label className="form-label">X</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      className="form-control"
-                      value={x}
-                      onChange={(e) => setX(e.target.value)}
-                    />
+                    <input type="number" step="0.001" className="form-control" value={x} onChange={(e) => setX(e.target.value)} />
                   </div>
                 ) : null}
 
                 {tipoSeleccionado?.usaY ? (
                   <div className="col-md-4">
                     <label className="form-label">Y</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      className="form-control"
-                      value={y}
-                      onChange={(e) => setY(e.target.value)}
-                    />
+                    <input type="number" step="0.001" className="form-control" value={y} onChange={(e) => setY(e.target.value)} />
                   </div>
                 ) : null}
 
                 {tipoSeleccionado?.usaZ ? (
                   <div className="col-md-4">
                     <label className="form-label">Z</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      className="form-control"
-                      value={z}
-                      onChange={(e) => setZ(e.target.value)}
-                    />
+                    <input type="number" step="0.001" className="form-control" value={z} onChange={(e) => setZ(e.target.value)} />
                   </div>
                 ) : null}
 
                 {/* Tasa */}
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Tasa USD (editable)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-control"
-                    value={tasaUSD}
-                    onChange={(e) => setTasaUSD(e.target.value)}
-                  />
+                  <input type="number" step="0.01" className="form-control" value={tasaUSD} onChange={(e) => setTasaUSD(e.target.value)} />
                   <div className="text-muted" style={{ fontSize: 12 }}>
                     1 USD = {Number(tasaUSD || 0).toFixed(2)} C$
                   </div>
                 </div>
 
                 <div className="col-12 d-flex gap-2 mt-2">
-                  <button className="btn btn-primary" onClick={agregarAlCarrito}>
+                  <button className="btn btn-outline-success" onClick={agregarAlCarrito}>
                     Agregar al carrito
                   </button>
-                  <button
-                    className="btn btn-outline-secondary"
-                    onClick={vaciarCarrito}
-                    disabled={carrito.length === 0}
-                  >
+                  <button className="btn btn-outline-secondary" onClick={() => setCarrito([])} disabled={carrito.length === 0}>
                     Vaciar carrito
                   </button>
                 </div>
@@ -490,6 +443,9 @@ export default function VentasVentanas() {
                         <div>
                           <div className="fw-bold">{it.tipoNombre}</div>
                           <div className="text-muted" style={{ fontSize: 12 }}>
+                            Color: <strong>{it.color}</strong>
+                          </div>
+                          <div className="text-muted" style={{ fontSize: 12 }}>
                             {it.ancho.toFixed(3)}m x {it.alto.toFixed(3)}m • Cant: {it.cantidad}
                           </div>
                           {(it.x || it.y || it.z) ? (
@@ -499,10 +455,7 @@ export default function VentasVentanas() {
                           ) : null}
                         </div>
 
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => quitarDelCarrito(it.id)}
-                        >
+                        <button className="btn btn-sm btn-outline-danger" onClick={() => quitarDelCarrito(it.id)}>
                           Quitar
                         </button>
                       </div>
@@ -532,7 +485,7 @@ export default function VentasVentanas() {
               </div>
 
               <button
-                className="btn btn-success w-100 mt-3"
+                className="btn btn-outline-success w-100 mt-3"
                 disabled={guardando || carrito.length === 0}
                 onClick={guardarVentaVentanas}
               >
