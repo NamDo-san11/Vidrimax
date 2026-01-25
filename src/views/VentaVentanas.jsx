@@ -260,14 +260,14 @@ export default function VentasVentanas() {
     // Cabecera tabla
     yPos += 8; docpdf.setFontSize(8); docpdf.setLineWidth(0.3); docpdf.line(M_LEFT, yPos, M_RIGHT, yPos);
     yPos += 5;
-    docpdf.text("Ventana (Color)", M_LEFT + 2, yPos);
+    docpdf.text("Ventana (Color)", M_LEFT + 4, yPos);
     docpdf.text("Cant", 86, yPos, { align: "right" });
     docpdf.text("Unit", 110, yPos, { align: "right" });
     docpdf.text("Subt", 134, yPos, { align: "right" });
     yPos += 3; docpdf.line(M_LEFT, yPos, M_RIGHT, yPos); yPos += 5;
 
     factura.items.forEach((i) => {
-      const base = `${i.tipoNombre} - ${i.color} (${Number(i.ancho).toFixed(2)} x ${Number(i.alto).toFixed(2)})`;
+      const base = `${i.tipoNombre} - ${i.color} (${i.ancho} x ${i.alto})`;
       const vars =
         (Number(i.x) || Number(i.y) || Number(i.z))
           ? ` X:${Number(i.x).toFixed(3)} Y:${Number(i.y).toFixed(3)} Z:${Number(i.z).toFixed(3)}`
@@ -358,7 +358,7 @@ export default function VentasVentanas() {
         totalUSD
       };
 
-      await addDoc(collection(db, "ventas"), {
+      await addDoc(collection(db, "ventasVentanas"), {
         ...factura,
         fecha: Timestamp.now()
       });

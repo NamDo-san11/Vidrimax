@@ -29,28 +29,92 @@ const GestionVentas = () => {
     setLoading(true);
     setError("");
     try {
-      const q = query(collection(db, "ventas"), orderBy("fecha", "desc"));
-      const snap = await getDocs(q);
+      // ===== 1) Productos (ventas) =====
+      const qProd = query(collection(db, "ventas"), orderBy("fecha", "desc"));
+      // ===== 2) Ventanas (ventasVentanas) =====
+      const qWin = query(collection(db, "ventasVentanas"), orderBy("fecha", "desc"));
 
-      const data = snap.docs.map(d => {
+      const [snapProd, snapWin] = await Promise.all([getDocs(qProd), getDocs(qWin)]);
+
+      const ventasProductos = snapProd.docs.map(d => {
         const r = d.data();
+        const fecha = r.fecha?.toDate ? r.fecha.toDate() : new Date();
+
+        const items = Array.isArray(r.items)
+          ? r.items.map(i => ({
+              nombre: i.nombre ?? "",
+              color: i.color ?? "",
+              categoria: i.categoria ?? "",
+              cantidad: Number(i.cantidad ?? 0),
+              precio: Number(i.precio ?? 0),
+              subtotal: Number(i.precio ?? 0) * Number(i.cantidad ?? 0),
+            }))
+          : [];
+
+        const total = Number(r.total ?? items.reduce((acc, it) => acc + it.subtotal, 0));
+
         return {
           id: d.id,
+          tipoVenta: "productos",
           numero: r.numero || d.id,
-          fecha: r.fecha?.toDate ? r.fecha.toDate() : new Date(),
+          fecha,
           cliente: r.cliente || "Cliente",
           empleado: r.empleado || "Empleado",
-          total: Number(r.total || 0),
-          items: Array.isArray(r.items)
-            ? r.items.map(i => ({
-                ...i,
-                subtotal: Number(i.precio) * Number(i.cantidad)
-              }))
-            : [],
+          total,
+          items,
         };
       });
 
-      setVentas(data);
+      const ventasVentanas = snapWin.docs.map(d => {
+        const r = d.data();
+        const fecha = r.fecha?.toDate ? r.fecha.toDate() : new Date();
+
+        // Normalizamos items de ventanas al MISMO formato que la factura actual
+        const items = Array.isArray(r.items)
+          ? r.items.map(i => {
+              const ancho = Number(i.ancho ?? 0);
+              const alto = Number(i.alto ?? 0);
+
+              const nombre = `${i.tipoNombre ?? "Ventana"} (${ancho.toFixed(2)} x ${alto.toFixed(2)})`;
+
+              const cantidad = Number(i.cantidad ?? 0);
+
+              // En ventanas usamos el unitario ajustado y subtotal final
+              const precio = Number(i.totalUnitarioFinal ?? i.totalUnitario ?? 0);
+              const subtotal = Number(i.totalFinal ?? i.total ?? (precio * cantidad));
+
+              return {
+                nombre,
+                color: i.color ?? "",
+                categoria: "Ventanas",
+                cantidad,
+                precio,
+                subtotal
+              };
+            })
+          : [];
+
+        const total = Number(r.total ?? items.reduce((acc, it) => acc + it.subtotal, 0));
+
+        return {
+          id: d.id,
+          tipoVenta: "ventanas",
+          numero: r.numero || d.id,
+          fecha,
+          cliente: r.cliente || "Cliente",
+          empleado: r.empleado || "Empleado",
+          total,
+          items,
+        };
+      });
+
+      // ===== Merge + ordenar por fecha desc =====
+      const merged = [...ventasProductos, ...ventasVentanas].sort(
+        (a, b) => b.fecha.getTime() - a.fecha.getTime()
+      );
+
+      setVentas(merged);
+      setCurrentPage(1);
     } catch (e) {
       console.error(e);
       setError("No se pudieron cargar las ventas.");
@@ -64,7 +128,7 @@ const GestionVentas = () => {
   // ===== FILTRO =====
   const ventasFiltradas = useMemo(() => {
     return ventas.filter(v => {
-      const matchCliente = v.cliente.toLowerCase().includes(busqCliente.toLowerCase());
+      const matchCliente = (v.cliente || "").toLowerCase().includes((busqCliente || "").toLowerCase());
       const matchFecha = busqFecha
         ? v.fecha.toISOString().split("T")[0] === busqFecha
         : true;
@@ -83,12 +147,12 @@ const GestionVentas = () => {
     setDetalleOpen(true);
   };
 
-  // ===== DISEÑO EXACTO DE FACTURA =====
+  // ===== DISEÑO EXACTO DE FACTURA (MISMO) =====
   const generarFacturaPDF = (factura) => {
     const EMPRESA = {
       nombre: "VIDRIMAX",
       telefono: "Tel: 5802-8225",
-      direccion: "Del Hotel Pergolas 100 v alsur, 20 v al Este",
+      direccion: "Del Hotel Pergolas 100 v al Sur, 20 v al Este",
       frase: "Calidad y confianza en cada detalle"
     };
 
@@ -127,11 +191,12 @@ const GestionVentas = () => {
     y += 3; doc.line(M_LEFT, y, M_RIGHT, y); y += 5;
 
     factura.items.forEach((i) => {
-      const nombre = `${i.nombre} - ${i.color}`;
+      const medidas = (i.ancho && i.alto) ? ` (${i.ancho} x ${i.alto})` : "";
+      const nombre = `${i.nombre} - ${i.color}${medidas}`;
       doc.text(nombre, M_LEFT + 2, y, { maxWidth: 75 });
       doc.text(String(i.cantidad), 90, y, { align: "right" });
-      doc.text(`C$ ${i.precio.toFixed(2)}`, 112, y, { align: "right" });
-      doc.text(`C$ ${i.subtotal.toFixed(2)}`, 134, y, { align: "right" });
+      doc.text(`C$ ${Number(i.precio).toFixed(2)}`, 112, y, { align: "right" });
+      doc.text(`C$ ${Number(i.subtotal).toFixed(2)}`, 134, y, { align: "right" });
       y += 6;
       if (y > 185) { doc.addPage(); y = M_TOP + 10; }
     });
@@ -139,7 +204,7 @@ const GestionVentas = () => {
     // Total
     y += 2; doc.setLineWidth(0.4); doc.line(M_LEFT, y, M_RIGHT, y);
     y += 8; doc.setFontSize(11);
-    doc.text(`TOTAL: C$ ${factura.total.toFixed(2)}`, M_RIGHT, y, { align: "right" });
+    doc.text(`TOTAL: C$ ${Number(factura.total).toFixed(2)}`, M_RIGHT, y, { align: "right" });
 
     // Pie
     y += 14; doc.setFontSize(8);
@@ -199,7 +264,7 @@ const GestionVentas = () => {
               <div className="emp-tr" key={v.id}>
                 <div className="emp-td">{v.fecha.toLocaleDateString()}</div>
                 <div className="emp-td emp-name">{v.cliente}</div>
-                <div className="emp-td">C$ {v.total.toFixed(2)}</div>
+                <div className="emp-td">C$ {Number(v.total).toFixed(2)}</div>
                 <div className="emp-td emp-actions">
                   <button className="emp-btn" onClick={()=>verDetalle(v)}>Ver</button>
                   <button className="emp-primary" onClick={()=>generarFacturaPDF(v)}>Imprimir</button>
@@ -226,7 +291,7 @@ const GestionVentas = () => {
               <strong>Cliente:</strong> {ventaSel.cliente}<br/>
               <strong>Empleado:</strong> {ventaSel.empleado}<br/>
               <strong>Fecha:</strong> {ventaSel.fecha.toLocaleString()}<br/>
-              <strong>Total:</strong> C$ {ventaSel.total.toFixed(2)}
+              <strong>Total:</strong> C$ {Number(ventaSel.total).toFixed(2)}
             </div>
             <div className="emp-card" style={{ padding:12 }}>
               <div className="emp-card-title">Productos</div>
@@ -246,7 +311,7 @@ const GestionVentas = () => {
                     <div className="emp-td">{i.categoria}</div>
                     <div className="emp-td">{i.cantidad}</div>
                     <div className="emp-td">C$ {Number(i.precio).toFixed(2)}</div>
-                    <div className="emp-td">C$ {i.subtotal.toFixed(2)}</div>
+                    <div className="emp-td">C$ {Number(i.subtotal).toFixed(2)}</div>
                   </div>
                 ))}
               </div>
