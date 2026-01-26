@@ -10,6 +10,21 @@
   }
 }
 
+.emp-danger {
+  background: #dc3545;        /* rojo Bootstrap */
+  color: #fff;
+  border: none;
+}
+
+.emp-danger:hover {
+  background: #b02a37;
+}
+
+.emp-danger:active {
+  background: #9a2530;
+}
+
+
 /* 🔥 Aquí está la clave */
 .emp-modal-card {
   max-height: 88vh;        /* límite real */
