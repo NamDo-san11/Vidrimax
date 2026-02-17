@@ -1,5 +1,5 @@
 // src/components/encabezado.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../database/authcontext";
 import logo from "../assets/logoex.png";
@@ -8,18 +8,50 @@ import "../App.css";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 
-// Define los items de menú y a qué roles se les permite ver
-const menuItems = [
-  { to: "/inicio", icon: "bi-house", label: "Inicio", roles: ["admin", "empleado"] },
-  { to: "/inventario", icon: "bi-box-seam", label: "Inventario", roles: ["admin"] },
-  { to: "/catalogo", icon: "bi-front", label: "Catálogo", roles: ["admin", "empleado"] },
-  { to: "/ventas", icon: "bi-receipt", label: "Ventas", roles: ["admin", "empleado"] },
-  { to: "/empleados", icon: "bi-people", label: "Empleados", roles: ["admin"] },
-  { to: "/pagos", icon: "bi-credit-card", label: "Pagos", roles: ["admin"] },
-  { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["admin"] },
-  { to: "/catalogoventanas", icon: "bi-card-list", label: "Administrar Ventanas", roles: ["admin"] },
-  { to: "/calcularventana", icon: "bi-calculator", label: "Calcular Ventana", roles: ["empleado","admin"] },
-  { to: "/ventasventanas", icon: "bi-cart4", label: "Ventas de Ventanas", roles: ["empleado","admin"] },
+// ========= MENU (AGRUPADO) =========
+const menuGroups = [
+  {
+    key: "general",
+    title: "General",
+    icon: "bi-speedometer2",
+    roles: ["admin", "empleado"],
+    items: [
+      { to: "/inicio", icon: "bi-house", label: "Inicio", roles: ["admin", "empleado"] },
+    ],
+  },
+  {
+    key: "operaciones",
+    title: "Operaciones",
+    icon: "bi-briefcase",
+    roles: ["admin", "empleado"],
+    items: [
+      { to: "/catalogo", icon: "bi-front", label: "Catálogo", roles: ["admin", "empleado"] },
+      { to: "/ventas", icon: "bi-receipt", label: "Ventas", roles: ["admin", "empleado"] },
+    ],
+  },
+  {
+    key: "inventario",
+    title: "Inventario",
+    icon: "bi-box-seam",
+    roles: ["admin"],
+    items: [
+      { to: "/inventario", icon: "bi-box-seam", label: "Inventario", roles: ["admin"] },
+      { to: "/pagos", icon: "bi-credit-card", label: "Pagos", roles: ["admin"] },
+      { to: "/gestionventas", icon: "bi-graph-up", label: "Gestión de Ventas", roles: ["admin"] },
+      { to: "/empleados", icon: "bi-people", label: "Empleados", roles: ["admin"] },
+    ],
+  },
+  {
+    key: "ventanas",
+    title: "Ventanas",
+    icon: "bi-window",
+    roles: ["admin", "empleado"],
+    items: [
+      { to: "/catalogoventanas", icon: "bi-card-list", label: "Administrar Ventanas", roles: ["admin"] },
+      { to: "/calcularventana", icon: "bi-calculator", label: "Calcular Ventana", roles: ["admin", "empleado"] },
+      { to: "/ventasventanas", icon: "bi-cart4", label: "Ventas de Ventanas", roles: ["admin", "empleado"] },
+    ],
+  },
 ];
 
 const Encabezado = ({ children }) => {
@@ -30,15 +62,29 @@ const Encabezado = ({ children }) => {
   const [rol, setRol] = useState(null);
   const [loadingRol, setLoadingRol] = useState(true);
 
-  // Obtener el rol del usuario desde Firestore
+  // Estado de grupos abiertos/cerrados (para no saturar)
+  const [openGroups, setOpenGroups] = useState({
+    general: true,
+    operaciones: true,
+    inventario: true,
+    ventanas: true,
+  });
+
+  const toggleGroup = (key) => {
+    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Obtener rol desde Firestore
   useEffect(() => {
     const obtenerRol = async () => {
-      if (user) {
-        const ref = doc(db, "users", user.uid); // colección "users"
+      if (!user) return;
+      try {
+        const ref = doc(db, "users", user.uid);
         const snap = await getDoc(ref);
-        if (snap.exists()) {
-          setRol(snap.data().role); // campo role
-        }
+        if (snap.exists()) setRol(snap.data().role);
+      } catch (e) {
+        console.error("Error obteniendo rol:", e);
+      } finally {
         setLoadingRol(false);
       }
     };
@@ -61,6 +107,18 @@ const Encabezado = ({ children }) => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Filtra grupos y items por rol (memo para rendimiento)
+  const groupsForRole = useMemo(() => {
+    if (!rol) return [];
+    return menuGroups
+      .filter((g) => g.roles.includes(rol))
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((it) => it.roles.includes(rol)),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [rol]);
+
   if (!isLoggedIn) return null;
 
   return (
@@ -80,20 +138,47 @@ const Encabezado = ({ children }) => {
           {loadingRol ? (
             <div className="sidebar-loading">Cargando menú...</div>
           ) : (
-            menuItems
-              .filter((item) => item.roles.includes(rol)) // Filtra según rol
-              .map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
-                  onClick={() => setIsMobileOpen(false)}
-                  end
+            groupsForRole.map((group) => (
+              <div key={group.key} className="sidebar-group">
+                {/* Título de sección (colapsable) */}
+                <button
+                  type="button"
+                  className="sidebar-section-title"
+                  onClick={() => toggleGroup(group.key)}
                 >
-                  <i className={`bi ${item.icon} sidebar-icon`} />
-                  <span className="sidebar-label">{item.label}</span>
-                </NavLink>
-              ))
+                  <span className="sidebar-section-left">
+                    <i className={`bi ${group.icon}`} />
+                    <span className="sidebar-section-text">{group.title}</span>
+                  </span>
+
+                  <i
+                    className={`bi ${
+                      openGroups[group.key] ? "bi-chevron-up" : "bi-chevron-down"
+                    } sidebar-section-chevron`}
+                  />
+                </button>
+
+                {/* Items */}
+                {openGroups[group.key] && (
+                  <div className="sidebar-section-items">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        className={({ isActive }) =>
+                          `sidebar-link ${isActive ? "active" : ""}`
+                        }
+                        onClick={() => setIsMobileOpen(false)}
+                        end
+                      >
+                        <i className={`bi ${item.icon} sidebar-icon`} />
+                        <span className="sidebar-label">{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
           )}
         </nav>
 
@@ -107,7 +192,9 @@ const Encabezado = ({ children }) => {
         )}
       </aside>
 
-      {isMobileOpen && <div className="sidebar-overlay" onClick={() => setIsMobileOpen(false)} />}
+      {isMobileOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsMobileOpen(false)} />
+      )}
 
       <div className="content-shell">
         <header className="topbar">

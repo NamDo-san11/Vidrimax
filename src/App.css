@@ -345,14 +345,114 @@ body{
 }
 
 @media (min-width: 901px){
-  .content-main{
-    padding-right: 12px;
-    padding-left: 22px;
+
+  .sidebar-title,
+  .sidebar-label,
+  .sidebar-section-text,
+  .sidebar-section-chevron{
+    display: none;
+  }
+
+  .sidebar-link,
+  .sidebar-logout,
+  .sidebar-section-title{
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 12px 10px;
+  }
+
+  @media (hover: hover) and (pointer: fine){
+    .sidebar:hover{
+      width: var(--sidebar-expanded);
+      z-index: 60;
+    }
+
+    .sidebar:hover .sidebar-title,
+    .sidebar:hover .sidebar-label,
+    .sidebar:hover .sidebar-section-text,
+    .sidebar:hover .sidebar-section-chevron{
+      display: block;
+    }
+
+    .sidebar:hover .sidebar-link,
+    .sidebar:hover .sidebar-logout,
+    .sidebar:hover .sidebar-section-title{
+      grid-template-columns: 44px 1fr;
+      justify-items: stretch;
+      padding: 12px 12px;
+    }
   }
 }
+
 
 /* Pega esto al final de src/App.css para evitar que Bootstrap o tu layout mueva el login */
 .login-page{
   margin-left: 0 !important;
 }
+/* ===== SECCIONES DEL MENÚ (para reducir saturación) ===== */
 
+.sidebar-group{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Botón del título de sección */
+.sidebar-section-title{
+  width: 100%;
+  border: none;
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+
+  border-radius: 14px;
+  padding: 10px 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  cursor: pointer;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+
+  transition: background 0.16s ease, transform 0.12s ease, opacity 0.16s ease;
+  opacity: 0.95;
+}
+
+.sidebar-section-title:hover{
+  background: rgba(15, 23, 42, 0.22);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.sidebar-section-left{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sidebar-section-left i{
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+}
+
+.sidebar-section-text{
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-section-chevron{
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+/* Contenedor de items de la sección */
+.sidebar-section-items{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
