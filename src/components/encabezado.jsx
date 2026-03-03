@@ -50,6 +50,7 @@ const menuGroups = [
       { to: "/catalogoventanas", icon: "bi-card-list", label: "Administrar Ventanas", roles: ["admin"] },
       { to: "/calcularventana", icon: "bi-calculator", label: "Calcular Ventana", roles: ["admin", "empleado"] },
       { to: "/ventasventanas", icon: "bi-cart4", label: "Ventas de Ventanas", roles: ["admin", "empleado"] },
+      { to: "/ventanasadmin" , icon: "bi-save2", label: "Guardar Ventana", roles: ["admin"] },
     ],
   },
 ];

@@ -91,20 +91,7 @@ export default function AdminVentanas() {
           {/* VARIABLES */}
           <div className="mb-3">
             <label className="form-label fw-bold">Variables usadas</label>
-            <div className="d-flex gap-4">
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" checked={usaX} onChange={() => setUsaX(!usaX)} />
-                <label className="form-check-label">X</label>
-              </div>
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" checked={usaY} onChange={() => setUsaY(!usaY)} />
-                <label className="form-check-label">Y</label>
-              </div>
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" checked={usaZ} onChange={() => setUsaZ(!usaZ)} />
-                <label className="form-check-label">Z</label>
-              </div>
-            </div>
+            <label htmlFor="">: las palabras clables para las Formulas son (alto) (ancho)</label>
           </div>
 
           {/* MATERIALES */}
@@ -153,7 +140,7 @@ export default function AdminVentanas() {
 
               <div className="col-md-2">
                 <button
-                  className="btn btn-danger w-100"
+                  className="btn btn-outline-danger w-100"
                   onClick={() => eliminarMaterial(i)}
                 >
                   ✕
@@ -169,7 +156,7 @@ export default function AdminVentanas() {
         </div>
 
         <div className="card-footer text-end">
-          <button className="btn btn-success" onClick={guardarVentana}>
+          <button className="btn btn-outline-success" onClick={guardarVentana}>
             💾 Guardar ventana
           </button>
         </div>
