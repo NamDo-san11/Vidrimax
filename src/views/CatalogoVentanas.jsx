@@ -27,6 +27,77 @@ export default function CatalogoVentanas() {
   const [usaZ, setUsaZ] = useState(false);
   const [materiales, setMateriales] = useState([]);
 
+  // ===== VALIDACIÓN DE FÓRMULAS =====
+  const validarFormula = (formula) => {
+    const texto = String(formula || "").trim();
+
+    if (!texto) {
+      return { valida: false, mensaje: "La fórmula no puede estar vacía." };
+    }
+
+    const caracteresPermitidos = /^[0-9a-zA-Z+\-*/().\s]+$/;
+    if (!caracteresPermitidos.test(texto)) {
+      return {
+        valida: false,
+        mensaje: "Hay caracteres no permitidos. Usa solo números, alto, ancho, x, y, z, + - * / y paréntesis."
+      };
+    }
+
+    const palabras = texto.match(/[a-zA-Z_]+/g) || [];
+    const palabrasPermitidas = ["alto", "ancho", "x", "y", "z"];
+
+    for (const palabra of palabras) {
+      if (!palabrasPermitidas.includes(palabra)) {
+        return {
+          valida: false,
+          mensaje: `La palabra "${palabra}" no es válida. Usa solo: alto, ancho, x, y, z.`
+        };
+      }
+    }
+
+    let balance = 0;
+    for (const char of texto) {
+      if (char === "(") balance++;
+      if (char === ")") balance--;
+      if (balance < 0) {
+        return {
+          valida: false,
+          mensaje: "Hay un paréntesis de cierre sin abrir."
+        };
+      }
+    }
+
+    if (balance !== 0) {
+      return {
+        valida: false,
+        mensaje: "Los paréntesis no están balanceados."
+      };
+    }
+
+    if (/[\+\-\*\/]{2,}/.test(texto.replace(/\s+/g, ""))) {
+      return {
+        valida: false,
+        mensaje: "Hay operadores repetidos o mal escritos."
+      };
+    }
+
+    if (/[\+\-\*\/.]$/.test(texto)) {
+      return {
+        valida: false,
+        mensaje: "La fórmula no puede terminar en operador."
+      };
+    }
+
+    if (/^[\*\/\)]/.test(texto)) {
+      return {
+        valida: false,
+        mensaje: "La fórmula empieza con un carácter inválido."
+      };
+    }
+
+    return { valida: true, mensaje: "Fórmula válida." };
+  };
+
   const cargarVentanas = async () => {
     const qs = await getDocs(collection(db, "tiposVentanas"));
     const data = qs.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -63,7 +134,10 @@ export default function CatalogoVentanas() {
   };
 
   const agregarMaterial = () => {
-    setMateriales([...materiales, { nombre: "", formula: "", cantidad: 1, precio: 0 }]);
+    setMateriales([
+      ...materiales,
+      { nombre: "", formula: "", cantidad: 1, precio: 0 }
+    ]);
   };
 
   const eliminarMaterial = (i) => {
@@ -72,12 +146,44 @@ export default function CatalogoVentanas() {
 
   const guardarCambios = async () => {
     if (!nombre.trim()) {
-      setError("El nombre es obligatorio");
+      setError("El nombre es obligatorio.");
       return;
+    }
+
+    if (materiales.length === 0) {
+      setError("Debes agregar al menos un material.");
+      return;
+    }
+
+    for (let i = 0; i < materiales.length; i++) {
+      const m = materiales[i];
+
+      if (!m.nombre?.trim()) {
+        setError(`El material #${i + 1} no tiene nombre.`);
+        return;
+      }
+
+      const validacion = validarFormula(m.formula);
+      if (!validacion.valida) {
+        setError(`Error en la fórmula de "${m.nombre}": ${validacion.mensaje}`);
+        return;
+      }
+
+      if (!m.cantidad || Number(m.cantidad) <= 0) {
+        setError(`La cantidad del material "${m.nombre}" debe ser mayor a 0.`);
+        return;
+      }
+
+      if (Number(m.precio) < 0) {
+        setError(`El precio del material "${m.nombre}" no puede ser negativo.`);
+        return;
+      }
     }
 
     try {
       setGuardando(true);
+      setError("");
+
       await updateDoc(doc(db, "tiposVentanas", editId), {
         nombre,
         descripcion,
@@ -86,10 +192,11 @@ export default function CatalogoVentanas() {
         usaZ,
         materiales
       });
+
       await cargarVentanas();
       cerrarModal();
     } catch {
-      setError("Error al guardar cambios");
+      setError("Error al guardar cambios.");
     } finally {
       setGuardando(false);
     }
@@ -134,16 +241,24 @@ export default function CatalogoVentanas() {
                   </summary>
                   <ul className="mt-2">
                     {(v.materiales || []).map((m, i) => (
-                      <li key={i}><strong>{m.nombre}</strong> → {m.formula}</li>
+                      <li key={i}>
+                        <strong>{m.nombre}</strong> → {m.formula}
+                      </li>
                     ))}
                   </ul>
                 </details>
               </td>
               <td>
-                <button className="btn btn-sm btn-outline-primary me-2" onClick={() => abrirEditar(v)}>
+                <button
+                  className="btn btn-sm btn-outline-primary me-2"
+                  onClick={() => abrirEditar(v)}
+                >
                   Editar
                 </button>
-                <button className="btn btn-sm btn-outline-danger" onClick={() => eliminarVentana(v.id)}>
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={() => eliminarVentana(v.id)}
+                >
                   Eliminar
                 </button>
               </td>
@@ -152,17 +267,15 @@ export default function CatalogoVentanas() {
         </tbody>
       </table>
 
-      {/* ===== MODAL CORREGIDO ===== */}
+      {/* ===== MODAL ===== */}
       {show && (
         <>
-          {/* Backdrop */}
           <div
             className="modal-backdrop show"
             style={{ zIndex: 1040 }}
             onClick={cerrarModal}
           />
 
-          {/* Modal */}
           <div
             className="modal show d-block"
             tabIndex="-1"
@@ -176,7 +289,6 @@ export default function CatalogoVentanas() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="modal-content">
-
                 <div className="modal-header bg-dark text-white">
                   <h5 className="modal-title">Editar ventana</h5>
                   <button className="btn-close btn-close-white" onClick={cerrarModal} />
@@ -188,20 +300,33 @@ export default function CatalogoVentanas() {
                   <div className="row g-3">
                     <div className="col-md-6">
                       <label className="form-label">Nombre</label>
-                      <input className="form-control" value={nombre} onChange={e => setNombre(e.target.value)} />
+                      <input
+                        className="form-control"
+                        value={nombre}
+                        onChange={e => setNombre(e.target.value)}
+                      />
                     </div>
+
                     <div className="col-md-6">
                       <label className="form-label">Descripción</label>
-                      <input className="form-control" value={descripcion} onChange={e => setDescripcion(e.target.value)} />
+                      <input
+                        className="form-control"
+                        value={descripcion}
+                        onChange={e => setDescripcion(e.target.value)}
+                      />
                     </div>
                   </div>
 
                   <div className="mt-3">
-                    <label className="form-label">Variables</label>
+                    <label className="form-label fw-bold">Variables</label>
                     <div className="d-flex gap-3">
                       <label><input type="checkbox" checked={usaX} onChange={() => setUsaX(!usaX)} /> X</label>
                       <label><input type="checkbox" checked={usaY} onChange={() => setUsaY(!usaY)} /> Y</label>
                       <label><input type="checkbox" checked={usaZ} onChange={() => setUsaZ(!usaZ)} /> Z</label>
+                    </div>
+
+                    <div className="small text-muted mt-2">
+                      Palabras válidas para fórmulas: <strong>alto</strong>, <strong>ancho</strong>, <strong>x</strong>, <strong>y</strong>, <strong>z</strong>
                     </div>
                   </div>
 
@@ -214,38 +339,91 @@ export default function CatalogoVentanas() {
                     </button>
                   </div>
 
-                  {materiales.map((m, i) => (
-                    <div key={i} className="row g-2 mb-2 p-2 border rounded bg-light">
-                      <div className="col-md-3">
-                        <input className="form-control" value={m.nombre}
-                          onChange={e => actualizarMaterial(i, "nombre", e.target.value)} placeholder="Material" />
+                  {materiales.map((m, i) => {
+                    const validacion = validarFormula(m.formula);
+                    const mostrarEstado = m.formula?.trim().length > 0;
+
+                    return (
+                      <div key={i} className="row g-2 mb-3 p-2 border rounded bg-light align-items-start">
+                        <div className="col-md-3">
+                          <input
+                            className="form-control"
+                            value={m.nombre}
+                            onChange={e => actualizarMaterial(i, "nombre", e.target.value)}
+                            placeholder="Material"
+                          />
+                        </div>
+
+                        <div className="col-md-4">
+                          <input
+                            className={`form-control ${
+                              mostrarEstado
+                                ? validacion.valida
+                                  ? "is-valid"
+                                  : "is-invalid"
+                                : ""
+                            }`}
+                            value={m.formula}
+                            onChange={e => actualizarMaterial(i, "formula", e.target.value)}
+                            placeholder="Fórmula"
+                          />
+
+                          {mostrarEstado && (
+                            <div
+                              className={`mt-1 small ${
+                                validacion.valida ? "text-success" : "text-danger"
+                              }`}
+                            >
+                              {validacion.mensaje}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="col-md-2">
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={m.cantidad}
+                            onChange={e => actualizarMaterial(i, "cantidad", +e.target.value)}
+                            placeholder="Cantidad"
+                          />
+                        </div>
+
+                        <div className="col-md-2">
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={m.precio}
+                            onChange={e => actualizarMaterial(i, "precio", +e.target.value)}
+                            placeholder="Precio"
+                          />
+                        </div>
+
+                        <div className="col-md-1">
+                          <button
+                            className="btn btn-outline-danger w-100"
+                            onClick={() => eliminarMaterial(i)}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-md-4">
-                        <input className="form-control" value={m.formula}
-                          onChange={e => actualizarMaterial(i, "formula", e.target.value)} placeholder="Fórmula" />
-                      </div>
-                      <div className="col-md-2">
-                        <input type="number" className="form-control" value={m.cantidad}
-                          onChange={e => actualizarMaterial(i, "cantidad", +e.target.value)} />
-                      </div>
-                      <div className="col-md-2">
-                        <input type="number" className="form-control" value={m.precio}
-                          onChange={e => actualizarMaterial(i, "precio", +e.target.value)} />
-                      </div>
-                      <div className="col-md-1">
-                        <button className="btn btn-outline-danger w-100" onClick={() => eliminarMaterial(i)}>✕</button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="modal-footer">
-                  <button className="btn btn-outline-secondary" onClick={cerrarModal}>Cancelar</button>
-                  <button className="btn btn-outline-success" onClick={guardarCambios} disabled={guardando}>
+                  <button className="btn btn-outline-secondary" onClick={cerrarModal}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn btn-outline-success"
+                    onClick={guardarCambios}
+                    disabled={guardando}
+                  >
                     {guardando ? "Guardando..." : "Guardar"}
                   </button>
                 </div>
-
               </div>
             </div>
           </div>
