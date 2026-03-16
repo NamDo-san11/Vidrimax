@@ -197,7 +197,7 @@ export default function AdminVentanas() {
           <div className="mb-3">
             <label className="form-label fw-bold">Variables usadas</label>
             <div className="small text-muted">
-              Palabras válidas para fórmulas: <strong>alto</strong>, <strong>ancho</strong>, <strong>x</strong>, <strong>y</strong>, <strong>z</strong>
+              Palabras válidas para fórmulas: <strong>alto</strong>, <strong>ancho</strong>
             </div>
             <div className="small text-muted">
               Ejemplo: <code>((alto + 0.16) + (((ancho / 2) + 0.027) * 2))</code>
