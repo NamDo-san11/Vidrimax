@@ -64,15 +64,10 @@ const Encabezado = ({ children }) => {
   const [loadingRol, setLoadingRol] = useState(true);
 
   // Estado de grupos abiertos/cerrados (para no saturar)
-  const [openGroups, setOpenGroups] = useState({
-    general: true,
-    operaciones: true,
-    inventario: true,
-    ventanas: true,
-  });
+  const [openGroup, setOpenGroup] = useState("general");
 
   const toggleGroup = (key) => {
-    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenGroup((current) => (current === key ? null : key));
   };
 
   // Obtener rol desde Firestore
@@ -154,13 +149,13 @@ const Encabezado = ({ children }) => {
 
                   <i
                     className={`bi ${
-                      openGroups[group.key] ? "bi-chevron-up" : "bi-chevron-down"
+                      openGroup === group.key ? "bi-chevron-up" : "bi-chevron-down"
                     } sidebar-section-chevron`}
                   />
                 </button>
 
                 {/* Items */}
-                {openGroups[group.key] && (
+                {openGroup === group.key && (
                   <div className="sidebar-section-items">
                     {group.items.map((item) => (
                       <NavLink

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { evaluarFormula } from "../components/utils/formulas";
+import { obtenerTasaUSD, TASA_USD_PREDETERMINADA } from "../components/utils/tasaUSD";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function CalcularVentana() {
@@ -24,8 +25,7 @@ export default function CalcularVentana() {
   // ✅ NUEVO: cantidad de ventanas
   const [cantidadVentanas, setCantidadVentanas] = useState(1);
 
-  // ✅ NUEVO: tasa USD
-  const TASA_USD = 36.78; // 1 USD = 36.78 C$
+  const [tasaUSD, setTasaUSD] = useState(TASA_USD_PREDETERMINADA);
 
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState("");
@@ -39,6 +39,12 @@ export default function CalcularVentana() {
       if (data.length) setTipoId(data[0].id);
     };
     cargar();
+  }, []);
+
+  useEffect(() => {
+    obtenerTasaUSD()
+      .then(setTasaUSD)
+      .catch((e) => console.error("No se pudo cargar la tasa USD:", e));
   }, []);
 
   // Reset cuando cambias tipo
@@ -99,13 +105,14 @@ export default function CalcularVentana() {
 
       const totalBase = detalle.reduce((acc, it) => acc + it.subtotalBase, 0);
       const totalFinal = detalle.reduce((acc, it) => acc + it.subtotalFinal, 0);
-      const totalUSD = totalFinal / TASA_USD;
+      const totalUSD = totalFinal / tasaUSD;
 
       setResultado({
         detalle,
         cantVent,
         totalBase,
         totalFinal,
+        tasaUSD,
         totalUSD
       });
     } catch (e) {
@@ -324,7 +331,7 @@ export default function CalcularVentana() {
                       </div>
 
                       <div className="text-muted mt-2" style={{ fontSize: 12 }}>
-                        Tasa: 1 USD = {TASA_USD} C$
+                        Tasa: 1 USD = {resultado.tasaUSD.toFixed(2)} C$
                       </div>
                     </div>
                   </div>

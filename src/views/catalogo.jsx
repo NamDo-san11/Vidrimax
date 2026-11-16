@@ -6,6 +6,15 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import { db } from "../database/firebaseconfig";
 import { collection, getDocs } from "firebase/firestore";
 
+const ITEMS_PER_PAGE = 15;
+const LOW_STOCK = 5;
+
+const normalizarTexto = (value) =>
+  String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 const CatalogoEmpleados = () => {
   const inventarioCollection = collection(db, "inventario");
 
@@ -15,6 +24,8 @@ const CatalogoEmpleados = () => {
   // Filtros
   const [q, setQ] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("ALL");
+  const [stockFiltro, setStockFiltro] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchMateriales = async () => {
     setLoading(true);
@@ -54,18 +65,57 @@ const CatalogoEmpleados = () => {
   }, [materiales]);
 
   const filtrados = useMemo(() => {
-    const needle = q.trim().toLowerCase();
+    const needle = normalizarTexto(q.trim());
     return materiales.filter((m) => {
       const okQ =
         !needle ||
-        m.nombre.toLowerCase().includes(needle) ||
-        m.descripcion.toLowerCase().includes(needle) ||
-        m.color.toLowerCase().includes(needle);
+        normalizarTexto(m.nombre).includes(needle) ||
+        normalizarTexto(m.descripcion).includes(needle) ||
+        normalizarTexto(m.color).includes(needle);
 
       const okCat = categoriaFiltro === "ALL" ? true : m.categoria === categoriaFiltro;
-      return okQ && okCat;
+      const okStock =
+        stockFiltro === "available" ? m.stock_total >= LOW_STOCK :
+        stockFiltro === "low" ? m.stock_total > 0 && m.stock_total < LOW_STOCK :
+        stockFiltro === "out" ? m.stock_total <= 0 :
+        true;
+
+      return okQ && okCat && okStock;
     });
-  }, [materiales, q, categoriaFiltro]);
+  }, [materiales, q, categoriaFiltro, stockFiltro]);
+
+  const filtrosActivos = q.trim() !== "" || categoriaFiltro !== "ALL" || stockFiltro !== "ALL";
+
+  const limpiarFiltros = () => {
+    setQ("");
+    setCategoriaFiltro("ALL");
+    setStockFiltro("ALL");
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const productosPagina = filtrados.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
+  );
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 7;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const start = Math.max(2, safeCurrentPage - 2);
+    const end = Math.min(totalPages - 1, safeCurrentPage + 2);
+    const pages = [1];
+
+    if (start > 2) pages.push("...");
+    for (let page = start; page <= end; page += 1) pages.push(page);
+    if (end < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  }, [safeCurrentPage, totalPages]);
 
   return (
     <div className="empCat-page">
@@ -83,16 +133,23 @@ const CatalogoEmpleados = () => {
           <div className="empCat-search">
             <i className="bi bi-search" />
             <input
-              placeholder="Buscar por nombre, descripción o color..."
+              aria-label="Buscar productos"
+              placeholder="Buscar por nombre, descripción o color"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
 
           <select
             className="empCat-filter"
             value={categoriaFiltro}
-            onChange={(e) => setCategoriaFiltro(e.target.value)}
+            onChange={(e) => {
+              setCategoriaFiltro(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             {categorias.map((c) => (
               <option key={c} value={c}>
@@ -100,7 +157,34 @@ const CatalogoEmpleados = () => {
               </option>
             ))}
           </select>
+
+          <select
+            className="empCat-filter"
+            value={stockFiltro}
+            aria-label="Filtrar por existencia"
+            onChange={(e) => {
+              setStockFiltro(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="ALL">Cualquier existencia</option>
+            <option value="available">Stock normal ({LOW_STOCK}+ unidades)</option>
+            <option value="low">Stock bajo (1–{LOW_STOCK - 1})</option>
+            <option value="out">Agotado</option>
+          </select>
+
+          {filtrosActivos && (
+            <button type="button" className="empCat-clearFilters" onClick={limpiarFiltros}>
+              <i className="bi bi-x-circle" /> Limpiar filtros
+            </button>
+          )}
         </div>
+
+        {!loading && (
+          <div className="empCat-resultCount" aria-live="polite">
+            {filtrados.length} {filtrados.length === 1 ? "producto encontrado" : "productos encontrados"}
+          </div>
+        )}
 
         {/* GRID DE PRODUCTOS */}
         {loading ? (
@@ -109,7 +193,7 @@ const CatalogoEmpleados = () => {
           <div className="empCat-empty">No hay productos que coincidan con tu búsqueda.</div>
         ) : (
           <div className="empCat-grid">
-            {filtrados.map((m) => (
+            {productosPagina.map((m) => (
               <div key={m.id} className={`empCat-card ${m.activo ? "" : "is-off"}`}>
                 <div className="empCat-card-top">
                   <div className="empCat-iconbox">
@@ -145,6 +229,56 @@ const CatalogoEmpleados = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {!loading && filtrados.length > 0 && (
+          <div className="empCat-pagination-wrap">
+            <div className="empCat-pageInfo">
+              Mostrando {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1}–
+              {Math.min(safeCurrentPage * ITEMS_PER_PAGE, filtrados.length)} de {filtrados.length} productos
+            </div>
+
+            {totalPages > 1 && (
+              <nav className="empCat-pagination" aria-label="Paginación del catálogo">
+                <button
+                  type="button"
+                  className="empCat-pageBtn"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={safeCurrentPage === 1}
+                  aria-label="Página anterior"
+                >
+                  <i className="bi bi-chevron-left" /> Anterior
+                </button>
+
+                <div className="empCat-pageNumbers">
+                  {pageNumbers.map((page, index) => page === "..." ? (
+                    <span className="empCat-dots" key={`dots-${index}`} aria-hidden="true">…</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`empCat-pageNum ${page === safeCurrentPage ? "active" : ""}`}
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      aria-current={page === safeCurrentPage ? "page" : undefined}
+                      aria-label={`Página ${page}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="empCat-pageBtn"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  aria-label="Página siguiente"
+                >
+                  Siguiente <i className="bi bi-chevron-right" />
+                </button>
+              </nav>
+            )}
           </div>
         )}
       </div>

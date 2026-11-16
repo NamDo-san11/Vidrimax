@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { evaluarFormula } from "../components/utils/formulas";
+import { guardarTasaUSD, obtenerTasaUSD } from "../components/utils/tasaUSD";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
@@ -26,6 +27,9 @@ export default function VentasVentanas() {
 
   // ===== Tasa =====
   const [tasaUSD, setTasaUSD] = useState(36.78);
+  const [cargandoTasa, setCargandoTasa] = useState(true);
+  const [guardandoTasa, setGuardandoTasa] = useState(false);
+  const [mensajeTasa, setMensajeTasa] = useState("");
 
   // ===== Medidas / variables =====
   const [ancho, setAncho] = useState("");
@@ -66,6 +70,40 @@ export default function VentasVentanas() {
     };
     cargar();
   }, []);
+
+  useEffect(() => {
+    const cargarTasa = async () => {
+      try {
+        setTasaUSD(await obtenerTasaUSD());
+      } catch (e) {
+        console.error(e);
+        setError("No se pudo cargar la tasa USD guardada.");
+      } finally {
+        setCargandoTasa(false);
+      }
+    };
+    cargarTasa();
+  }, []);
+
+  const guardarTasa = async () => {
+    setMensajeTasa("");
+    setError("");
+    if (!Number.isFinite(Number(tasaUSD)) || Number(tasaUSD) <= 0) {
+      setError("Ingresa una tasa USD válida.");
+      return;
+    }
+
+    setGuardandoTasa(true);
+    try {
+      await guardarTasaUSD(tasaUSD);
+      setMensajeTasa("Tasa USD guardada.");
+    } catch (e) {
+      console.error(e);
+      setError(e.message || "No se pudo guardar la tasa USD.");
+    } finally {
+      setGuardandoTasa(false);
+    }
+  };
 
   // Reset al cambiar tipo
   useEffect(() => {
@@ -525,14 +563,28 @@ export default function VentasVentanas() {
                   <label className="form-label fw-bold">Tasa USD (editable)</label>
                   <input
                     type="number"
+                    min="0.01"
                     step="0.01"
                     className="form-control"
                     value={tasaUSD}
-                    onChange={(e) => setTasaUSD(e.target.value)}
+                    disabled={cargandoTasa}
+                    onChange={(e) => {
+                      setTasaUSD(e.target.value);
+                      setMensajeTasa("");
+                    }}
                   />
                   <div className="text-muted" style={{ fontSize: 12 }}>
                     1 USD = {Number(tasaUSD || 0).toFixed(2)} C$
                   </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary mt-2"
+                    onClick={guardarTasa}
+                    disabled={cargandoTasa || guardandoTasa}
+                  >
+                    {guardandoTasa ? "Guardando..." : "Guardar tasa"}
+                  </button>
+                  {mensajeTasa ? <div className="text-success small mt-1">{mensajeTasa}</div> : null}
                 </div>
 
                 <div className="col-12 d-flex gap-2 mt-2">

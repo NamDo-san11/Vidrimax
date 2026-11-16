@@ -1,0 +1,40 @@
+INFORME TECNICO DE ACTUALIZACIONES
+Fecha: 16 de noviembre de 2026
+Proyecto: Vidrimax
+
+1. TASA DEL DOLAR
+- Se agrego persistencia compartida para la tasa USD en Firestore, en el documento configuracion/tasaUSD.
+- En Ventas de Ventanas se puede editar y guardar la tasa; la pantalla carga el valor guardado al abrirse.
+- Calcular Ventana carga y utiliza la misma tasa.
+- Si no existe una tasa guardada, se utiliza 36.78 como valor predeterminado.
+- La tasa usada se conserva tambien en el registro de cada factura de ventanas.
+- Archivos: src/components/utils/tasaUSD.js, src/views/VentaVentanas.jsx, src/views/CalcularVentana.jsx.
+
+2. SIDEBAR Y ENCABEZADO
+- Se cambio el menu para permitir abrir una sola seccion a la vez, reduciendo la saturacion para el administrador.
+- Se actualizaron colores, espaciado, enlaces activos, boton de cierre de sesion y comportamiento responsive.
+- Archivos: src/components/encabezado.jsx, src/App.css.
+
+3. PANTALLA DE INICIO
+- Se agrego una cabecera de bienvenida con la fecha actual y acceso a la instalacion de la app cuando esta disponible.
+- Se mejoro la jerarquia visual de los indicadores de inventario y stock bajo.
+- Se agregaron barras visuales para las categorias mas vendidas.
+- Se reorganizo la seccion informativa de Vidrimax y se ajusto el diseño para pantallas moviles.
+- Archivos: src/views/inicio.jsx, src/styles/inicio.css.
+
+4. CATALOGO
+- Se agrego paginacion de 15 productos por pagina.
+- La busqueda por nombre, descripcion y color ignora diferencias de mayusculas y tildes.
+- Se agregaron filtros por categoria y nivel de existencia: stock normal, stock bajo y agotado.
+- Se agregaron contador de resultados y opcion para limpiar todos los filtros.
+- Los filtros reinician la paginacion a la primera pagina.
+- Archivos: src/views/catalogo.jsx, src/styles/catalogo.css.
+
+VERIFICACION
+- La compilacion de produccion con npm run build finalizo correctamente.
+- ESLint no reporto errores en las verificaciones finales del componente de navegacion y la pantalla de Inicio.
+- En el Catalogo permanece una advertencia de React Hooks ya existente: fetchMateriales no esta incluido como dependencia del useEffect.
+- Vite informa que el bundle principal supera 500 kB minificado; la compilacion se completa correctamente.
+
+NOTAS DE CONFIGURACION
+- Para guardar la tasa USD, las reglas de seguridad de Firestore deben permitir leer y escribir el documento configuracion/tasaUSD a los usuarios autorizados.

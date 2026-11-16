@@ -6,9 +6,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
-  orderBy,
-  limit,
 } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { useAuth } from "../database/authcontext";
@@ -22,7 +19,6 @@ export default function Inicio() {
   const { user } = useAuth();
 
   // 👤 Perfil y empleado
-  const [perfil, setPerfil] = useState(null);
   const [empleadoNombre, setEmpleadoNombre] = useState("");
 
   // 📦 Inventario
@@ -33,8 +29,6 @@ export default function Inicio() {
   const [topCategorias, setTopCategorias] = useState([]);
 
   // 🧾 Ventas recientes
-  const [ventasRecientes, setVentasRecientes] = useState([]);
-
   // 📲 PWA
   const [solicitudInstalacion, setSolicitudInstalacion] = useState(null);
   const [mostrarBotonInstalacion, setMostrarBotonInstalacion] = useState(false);
@@ -43,6 +37,13 @@ export default function Inicio() {
 
   const abrirModalInstrucciones = () => setMostrarModalInstrucciones(true);
   const cerrarModalInstrucciones = () => setMostrarModalInstrucciones(false);
+  const fechaActual = new Intl.DateTimeFormat("es-NI", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+  const maxCategoria = Math.max(1, ...topCategorias.map((categoria) => categoria.cantidad));
 
   // ================== PWA ==================
   useEffect(() => {
@@ -83,8 +84,6 @@ export default function Inicio() {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
-          setPerfil(data);
-
           // obtener nombre del empleado
           if (data.empleadoId) {
             const empRef = doc(db, "empleados", data.empleadoId);
@@ -158,96 +157,128 @@ useEffect(() => {
   // ================== UI ==================
   return (
     <div className="inicio-container">
-      {/* 👋 SALUDO */}
-      <h4 className="mb-3">Bienvenido{empleadoNombre ? `, ${empleadoNombre}` : ""} 👋</h4>
-
-      {/* 📲 BOTÓN PWA */}
-      {!esDispositivoIOS && mostrarBotonInstalacion && (
-        <div className="mb-4 text-center">
-          <Button onClick={instalacion}>
-            Instalar app <i className="bi bi-download"></i>
-          </Button>
+      <header className="inicio-hero">
+        <div className="inicio-hero-copy">
+          <div className="inicio-eyebrow">
+            <span className="inicio-live-dot" /> VIDRIMAX <span className="inicio-eyebrow-divider">/</span> RESUMEN
+          </div>
+          <h1>Bienvenido{empleadoNombre ? `, ${empleadoNombre}` : ""}</h1>
+          <p>Todo listo para una nueva jornada.</p>
+          <div className="inicio-date">
+            <i className="bi bi-calendar3" />
+            <span>{fechaActual}</span>
+          </div>
         </div>
-      )}
 
-      {esDispositivoIOS && (
-        <div className="mb-4 text-center">
-          <Button onClick={abrirModalInstrucciones}>
-            Cómo instalar en iPhone <i className="bi bi-phone"></i>
-          </Button>
-          <ModalInstalacionIOS
-            mostrar={mostrarModalInstrucciones}
-            cerrar={cerrarModalInstrucciones}
-          />
+        <div className="inicio-hero-action">
+          {!esDispositivoIOS && mostrarBotonInstalacion && (
+            <Button className="inicio-install-button" onClick={instalacion}>
+              <i className="bi bi-download" /> Instalar app
+            </Button>
+          )}
+          {esDispositivoIOS && (
+            <>
+              <Button className="inicio-install-button" onClick={abrirModalInstrucciones}>
+                <i className="bi bi-phone" /> Instalar en iPhone
+              </Button>
+              <ModalInstalacionIOS
+                mostrar={mostrarModalInstrucciones}
+                cerrar={cerrarModalInstrucciones}
+              />
+            </>
+          )}
         </div>
-      )}
+        <div className="inicio-hero-mark" aria-hidden="true">
+          <i className="bi bi-window" />
+        </div>
+      </header>
 
-      {/* 📊 KPI */}
       <div className="cards-grid">
-        <div className="card card-inventario">
-          <p>Inventario disponible</p>
+        <div className="inicio-metric inicio-metric-inventory">
+          <div className="inicio-metric-head">
+            <span>Inventario disponible</span>
+            <i className="bi bi-box-seam" />
+          </div>
           <h2>C${totalInventario.toFixed(2)}</h2>
-          <small>Valor en bodega</small>
+          <small><span className="inicio-metric-dot" /> Valor actual en bodega</small>
         </div>
 
-        <div className="card card-alerta">
-          <p>Stock bajo</p>
+        <div className="inicio-metric inicio-metric-alert">
+          <div className="inicio-metric-head">
+            <span>Stock bajo</span>
+            <i className="bi bi-exclamation-triangle" />
+          </div>
           <h2>{alertasStock}</h2>
-          <span>&lt; {LOW_STOCK} unidades</span>
+          <small><span className="inicio-metric-dot" /> Productos con menos de {LOW_STOCK} unidades</small>
         </div>
 
-        <div className="card card-top">
-          <p>Top 3 categorías</p>
-          {topCategorias.map((cat, i) => (
-            <div key={i} style={{ marginTop: i === 0 ? "0.4rem" : "0.6rem" }}>
-              <b>{cat.categoria}</b>: {cat.cantidad} unidades
+        <div className="inicio-metric inicio-metric-top">
+          <div className="inicio-metric-head">
+            <span>Categorías más vendidas</span>
+            <i className="bi bi-bar-chart-line" />
+          </div>
+          {topCategorias.length ? (
+            <div className="inicio-category-list">
+              {topCategorias.map((categoria, index) => (
+                <div className="inicio-category" key={categoria.categoria}>
+                  <div className="inicio-category-label">
+                    <span><b>0{index + 1}</b> {categoria.categoria}</span>
+                    <strong>{categoria.cantidad}</strong>
+                  </div>
+                  <div className="inicio-category-track">
+                    <span style={{ width: `${(categoria.cantidad / maxCategoria) * 100}%` }} />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <p className="inicio-empty-state">Todavía no hay ventas registradas.</p>
+          )}
         </div>
       </div>
 
+      <section className="info-negocio">
+        <div className="info-negocio-heading">
+          <div>
+            <span className="inicio-section-kicker">NUESTRO NORTE</span>
+            <h2>Acerca de Vidrimax</h2>
+          </div>
+          <i className="bi bi-bounding-box-circles" aria-hidden="true" />
+        </div>
 
-{/* 🌟 MISIÓN, VISIÓN Y QUÉ SOMOS */}
-<section className="info-negocio mt-5">
-  <div className="text-center mb-4">
-    <h4>Acerca de Vidrimax</h4>
-    <p className="text-muted">
-      Conoce nuestra filosofía y lo que nos motiva a ofrecer siempre lo mejor
-      en vidriería y herrajes. Nuestra experiencia y compromiso están al servicio
-      de tu negocio.
-    </p>
-  </div>
+        <div className="cards-mision-vision">
+          <article className="card-info card-info-mision">
+            <span className="card-info-number">01</span>
+            <h3>Misión</h3>
+            <p>
+              Brindar soluciones en vidriería y herrajes de alta calidad, garantizando
+              satisfacción y confianza a nuestros clientes. Buscamos superar expectativas
+              con cada producto y servicio.
+            </p>
+          </article>
 
-  <div className="cards-mision-vision">
-    <div className="card-info">
-      <h5>Misión</h5>
-      <p>
-        Brindar soluciones en vidriería y herrajes de alta calidad, garantizando
-        satisfacción y confianza a nuestros clientes. Buscamos superar expectativas
-        con cada producto y servicio.
-      </p>
-    </div>
+          <article className="card-info card-info-vision">
+            <span className="card-info-number">02</span>
+            <h3>Visión</h3>
+            <p>
+              Ser la empresa líder en cristalería y herrajes en Nicaragua, innovando
+              constantemente en productos y servicios, promoviendo un crecimiento
+              sostenible y un servicio excepcional a nuestros clientes.
+            </p>
+          </article>
 
-    <div className="card-info">
-      <h5>Visión</h5>
-      <p>
-        Ser la empresa líder en cristalería y herrajes en Nicaragua, innovando
-        constantemente en productos y servicios, promoviendo un crecimiento
-        sostenible y un servicio excepcional a nuestros clientes.
-      </p>
-    </div>
-
-    <div className="card-info">
-      <h5>Qué somos</h5>
-      <p>
-        Vidrimax es un sistema integral para la gestión de ventas, inventario y
-        control de productos de vidriería. Facilitamos la operación diaria de
-        tu negocio, permitiéndote tomar decisiones rápidas basadas en datos
-        confiables.
-      </p>
-    </div>
-  </div>
-</section>
+          <article className="card-info card-info-about">
+            <span className="card-info-number">03</span>
+            <h3>Qué somos</h3>
+            <p>
+              Vidrimax es un sistema integral para la gestión de ventas, inventario y
+              control de productos de vidriería. Facilitamos la operación diaria de
+              tu negocio, permitiéndote tomar decisiones rápidas basadas en datos
+              confiables.
+            </p>
+          </article>
+        </div>
+      </section>
     </div>
   );
 }
