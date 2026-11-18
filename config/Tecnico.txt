@@ -38,3 +38,20 @@ VERIFICACION
 
 NOTAS DE CONFIGURACION
 - Para guardar la tasa USD, las reglas de seguridad de Firestore deben permitir leer y escribir el documento configuracion/tasaUSD a los usuarios autorizados.
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ACTUALIZACION: 18 de noviembre de 2026
+5. PRODUCTOS ADICIONALES EN VENTA DE VENTANAS
+- Se agrego la opcion de incluir productos del inventario al vender ventanas, dentro de la misma factura.
+- El selector abre un modal con busqueda por nombre, color y categoria; ignora diferencias de mayusculas y tildes.
+- El modal muestra los productos disponibles con su precio y existencia, en una lista simplificada.
+- Al confirmar la venta se valida y descuenta el inventario dentro de una transaccion de Firestore.
+- El PDF de ventanas y el historial de ventas reconocen los productos adicionales como lineas separadas.
+- Se corrigio la presentacion y alineacion del boton para que permanezca visible y no se desplace al seleccionar un producto.
+- Archivos: src/views/VentaVentanas.jsx, src/views/gestionventas.jsx.
+
+VERIFICACION DE LA ACTUALIZACION
+- ESLint para las pantallas modificadas finalizo sin errores.
+- npm run build finalizo correctamente.
+- Vite mantiene el aviso de que el bundle principal supera 500 kB minificado.
+

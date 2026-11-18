@@ -1,6 +1,6 @@
 // src/views/VentasVentanas.jsx
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, runTransaction, Timestamp } from "firebase/firestore";
 import { db } from "../database/firebaseconfig";
 import { evaluarFormula } from "../components/utils/formulas";
 import { guardarTasaUSD, obtenerTasaUSD } from "../components/utils/tasaUSD";
@@ -44,6 +44,12 @@ export default function VentasVentanas() {
 
   // ===== Carrito =====
   const [carrito, setCarrito] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [cargandoProductos, setCargandoProductos] = useState(true);
+  const [productoId, setProductoId] = useState("");
+  const [productoCantidad, setProductoCantidad] = useState(1);
+  const [mostrarModalProductos, setMostrarModalProductos] = useState(false);
+  const [busquedaProducto, setBusquedaProducto] = useState("");
 
   // ✅ UI: items expandidos (materiales)
   const [openDetalle, setOpenDetalle] = useState({}); // { itemId: true/false }
@@ -51,6 +57,21 @@ export default function VentasVentanas() {
   // ===== UI state =====
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+
+  const productosFiltrados = useMemo(() => {
+    const normalizar = (texto) => String(texto ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase();
+    const termino = normalizar(busquedaProducto.trim());
+    return productos
+      .filter((producto) => producto.existencia > 0)
+      .filter((producto) => normalizar(
+        `${producto.nombre} ${producto.color} ${producto.categoria}`
+      ).includes(termino));
+  }, [productos, busquedaProducto]);
+
+  const productoSeleccionado = productos.find((producto) => producto.id === productoId);
 
   // ===== Cargar tipos =====
   useEffect(() => {
@@ -83,6 +104,31 @@ export default function VentasVentanas() {
       }
     };
     cargarTasa();
+  }, []);
+
+  useEffect(() => {
+    const cargarProductos = async () => {
+      try {
+        const qs = await getDocs(collection(db, "inventario"));
+        setProductos(qs.docs.map((d) => {
+          const producto = d.data();
+          return {
+            id: d.id,
+            nombre: producto.nombre ?? "",
+            color: producto.color ?? "",
+            categoria: producto.categoria ?? "",
+            precio: Number(producto.precio_venta ?? 0),
+            existencia: Number(producto.stock_total ?? 0)
+          };
+        }));
+      } catch (e) {
+        console.error(e);
+        setError("No se pudieron cargar los productos del inventario.");
+      } finally {
+        setCargandoProductos(false);
+      }
+    };
+    cargarProductos();
   }, []);
 
   const guardarTasa = async () => {
@@ -177,10 +223,11 @@ export default function VentasVentanas() {
     setError("");
     try {
       const cant = Math.max(1, Number(cantidad || 1));
-      const { detalleOriginal, totalUnitario, ctx } = calcularUnitario();
+      const { detalleOriginal, ctx } = calcularUnitario();
 
       const itemBase = {
         id: `${tipoId}_${Date.now()}`,
+        tipoItem: "ventana",
         tipoId,
         tipoNombre: tipoSeleccionado.nombre,
         color: color.trim(),
@@ -212,6 +259,47 @@ export default function VentasVentanas() {
     } catch (e) {
       setError(e.message || "Error al agregar al carrito.");
     }
+  };
+
+  const agregarProductoAlCarrito = () => {
+    setError("");
+    const producto = productos.find((p) => p.id === productoId);
+    const cantidadAgregar = Number(productoCantidad);
+
+    if (!producto) return setError("Selecciona un producto del inventario.");
+    if (!Number.isInteger(cantidadAgregar) || cantidadAgregar <= 0) {
+      return setError("La cantidad del producto debe ser un entero mayor a 0.");
+    }
+
+    const cantidadEnCarrito = carrito
+      .filter((item) => item.tipoItem === "producto" && item.id === producto.id)
+      .reduce((acc, item) => acc + item.cantidad, 0);
+
+    if (cantidadEnCarrito + cantidadAgregar > producto.existencia) {
+      return setError(`Existencia insuficiente para ${producto.nombre}.`);
+    }
+
+    setCarrito((prev) => {
+      const existente = prev.find((item) => item.tipoItem === "producto" && item.id === producto.id);
+      if (existente) {
+        return prev.map((item) => item === existente
+          ? {
+              ...item,
+              cantidad: item.cantidad + cantidadAgregar,
+              totalFinal: item.precio * (item.cantidad + cantidadAgregar)
+            }
+          : item);
+      }
+
+      return [...prev, {
+        ...producto,
+        tipoItem: "producto",
+        cantidad: cantidadAgregar,
+        totalFinal: producto.precio * cantidadAgregar
+      }];
+    });
+    setProductoId("");
+    setProductoCantidad(1);
   };
 
   const quitarDelCarrito = (id) => {
@@ -305,22 +393,21 @@ export default function VentasVentanas() {
     yPos += 3; docpdf.line(M_LEFT, yPos, M_RIGHT, yPos); yPos += 5;
 
     factura.items.forEach((i) => {
-      const base = `${i.tipoNombre} - ${i.color} (${i.ancho} x ${i.alto})`;
-      const vars =
-        (Number(i.x) || Number(i.y) || Number(i.z))
-          ? ` X:${Number(i.x).toFixed(3)} Y:${Number(i.y).toFixed(3)} Z:${Number(i.z).toFixed(3)}`
-          : "";
-
-      const sinTxt = (i.excluidos && i.excluidos.length)
+      const esProducto = i.tipoItem === "producto";
+      const base = esProducto
+        ? `${i.nombre}${i.color ? ` - ${i.color}` : ""}`
+        : `${i.tipoNombre} - ${i.color} (${i.ancho} x ${i.alto})`;
+      const vars = !esProducto && (Number(i.x) || Number(i.y) || Number(i.z))
+        ? ` X:${Number(i.x).toFixed(3)} Y:${Number(i.y).toFixed(3)} Z:${Number(i.z).toFixed(3)}`
+        : "";
+      const sinTxt = !esProducto && i.excluidos?.length
         ? ` (Sin: ${i.excluidos.slice(0, 2).join(", ")}${i.excluidos.length > 2 ? "…" : ""})`
         : "";
 
-      const nombre = base + vars + sinTxt;
-
-      docpdf.text(nombre, M_LEFT + 2, yPos, { maxWidth: 78 });
+      docpdf.text(base + vars + sinTxt, M_LEFT + 2, yPos, { maxWidth: 78 });
       docpdf.text(String(i.cantidad), 86, yPos, { align: "right" });
-      docpdf.text(`C$ ${Number(i.totalUnitarioFinal).toFixed(2)}`, 110, yPos, { align: "right" });
-      docpdf.text(`C$ ${Number(i.totalFinal).toFixed(2)}`, 134, yPos, { align: "right" });
+      docpdf.text(`C$ ${Number(esProducto ? i.precio : i.totalUnitarioFinal).toFixed(2)}`, 110, yPos, { align: "right" });
+      docpdf.text(`C$ ${Number(esProducto ? i.subtotal : i.totalFinal).toFixed(2)}`, 134, yPos, { align: "right" });
 
       yPos += 7;
       if (yPos > 185) { docpdf.addPage(); yPos = M_TOP + 10; }
@@ -353,7 +440,9 @@ export default function VentasVentanas() {
 
     if (!cliente.trim()) return setError("Escribe el cliente.");
     if (!empleado.trim()) return setError("Escribe el empleado.");
-    if (carrito.length === 0) return setError("Agrega al menos una ventana.");
+    if (carrito.length === 0 || !carrito.some((item) => item.tipoItem !== "producto")) {
+      return setError("Agrega al menos una ventana.");
+    }
     if (Number(tasaUSD) <= 0) return setError("Tasa USD inválida.");
 
     setGuardando(true);
@@ -366,41 +455,78 @@ export default function VentasVentanas() {
         fecha: new Date(),
         tasaUSD: Number(tasaUSD),
 
-        items: carrito.map((i) => ({
-          tipoId: i.tipoId,
-          tipoNombre: i.tipoNombre,
-          color: i.color,
-          ancho: i.ancho,
-          alto: i.alto,
-          x: i.x,
-          y: i.y,
-          z: i.z,
-          cantidad: i.cantidad,
-
-          // ✅ Guardamos exclusiones y totales finales
-          excluidos: i.excluidos || [],
-          totalUnitarioFinal: Number(i.totalUnitarioFinal || 0),
-          totalFinal: Number(i.totalFinal || 0),
-
-          // Opcional: guardar el detalle final (auditoría)
-          detalleFinal: (i.detalleFinal || []).map((d) => ({
-            material: d.material,
-            formula: d.formula,
-            longitudTotal: Number(d.longitudTotal || 0),
-            precio: Number(d.precio || 0),
-            subtotal: Number(d.subtotal || 0)
-          }))
-        })),
+        items: carrito.map((i) => i.tipoItem === "producto"
+          ? {
+              tipoItem: "producto",
+              productoId: i.id,
+              nombre: i.nombre,
+              categoria: i.categoria,
+              color: i.color,
+              cantidad: i.cantidad,
+              precio: Number(i.precio || 0),
+              subtotal: Number(i.totalFinal || 0)
+            }
+          : {
+              tipoItem: "ventana",
+              tipoId: i.tipoId,
+              tipoNombre: i.tipoNombre,
+              color: i.color,
+              ancho: i.ancho,
+              alto: i.alto,
+              x: i.x,
+              y: i.y,
+              z: i.z,
+              cantidad: i.cantidad,
+              excluidos: i.excluidos || [],
+              totalUnitarioFinal: Number(i.totalUnitarioFinal || 0),
+              totalFinal: Number(i.totalFinal || 0),
+              detalleFinal: (i.detalleFinal || []).map((d) => ({
+                material: d.material,
+                formula: d.formula,
+                longitudTotal: Number(d.longitudTotal || 0),
+                precio: Number(d.precio || 0),
+                subtotal: Number(d.subtotal || 0)
+              }))
+            }),
 
         total,
         totalUSD
       };
 
-      await addDoc(collection(db, "ventasVentanas"), {
-        ...factura,
-        fecha: Timestamp.now()
+      const productosVendidos = carrito.filter((item) => item.tipoItem === "producto");
+      const facturaRef = doc(collection(db, "ventasVentanas"));
+      await runTransaction(db, async (transaction) => {
+        const refsInventario = productosVendidos.map((item) => doc(db, "inventario", item.id));
+        const snapshots = await Promise.all(refsInventario.map((ref) => transaction.get(ref)));
+
+        snapshots.forEach((snapshot, index) => {
+          const item = productosVendidos[index];
+          if (!snapshot.exists()) {
+            throw new Error(`El producto ${item.nombre} ya no existe en el inventario.`);
+          }
+          const stockActual = Number(snapshot.data().stock_total ?? 0);
+          if (item.cantidad > stockActual) {
+            throw new Error(`Existencia insuficiente para ${item.nombre}. Disponible: ${stockActual}.`);
+          }
+        });
+
+        productosVendidos.forEach((item, index) => {
+          transaction.update(refsInventario[index], {
+            stock_total: Number(snapshots[index].data().stock_total ?? 0) - item.cantidad
+          });
+        });
+        transaction.set(facturaRef, {
+          ...factura,
+          fecha: Timestamp.now()
+        });
       });
 
+      setProductos((prev) => prev.map((producto) => {
+        const vendido = productosVendidos.find((item) => item.id === producto.id);
+        return vendido
+          ? { ...producto, existencia: producto.existencia - vendido.cantidad }
+          : producto;
+      }));
       generarFacturaVentanasPDF(factura);
 
       alert("Venta de ventanas guardada y factura generada ✅");
@@ -599,6 +725,81 @@ export default function VentasVentanas() {
                     Vaciar carrito
                   </button>
                 </div>
+
+                <div className="col-12 mt-3">
+                  <div className="border rounded-3 bg-light p-3">
+                    <div className="d-flex align-items-start gap-3 mb-3">
+                      <div
+                        className="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                        style={{ width: 42, height: 42 }}
+                      >
+                        <i className="bi bi-box-seam fs-5" />
+                      </div>
+                      <div>
+                        <h6 className="fw-bold mb-1">Productos adicionales</h6>
+                        <div className="small text-muted">
+                          Agrega otros artículos a la misma factura de la ventana.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="row g-2 align-items-end">
+                      <div className="col-md-7">
+                        <label className="form-label small fw-semibold">Producto</label>
+                        <button
+                          type="button"
+                          className={`btn border bg-white text-start w-100 d-flex justify-content-between align-items-center ${productoSeleccionado ? "border-primary" : "border-secondary-subtle"}`}
+                          style={{ height: 40, overflow: "hidden" }}
+                          aria-haspopup="dialog"
+                          aria-expanded={mostrarModalProductos}
+                          onClick={() => {
+                            setBusquedaProducto("");
+                            setMostrarModalProductos(true);
+                          }}
+                          disabled={cargandoProductos}
+                        >
+                          <span className={productoSeleccionado ? "text-dark" : "text-muted"}>
+                            {cargandoProductos
+                              ? "Cargando inventario..."
+                              : productoSeleccionado
+                                ? `${productoSeleccionado.nombre}${productoSeleccionado.color ? ` - ${productoSeleccionado.color}` : ""}`
+                                : "Buscar y seleccionar producto"}
+                          </span>
+                          <i className="bi bi-search text-primary" />
+                        </button>
+                      </div>
+                      <div className="col-md-2">
+                        <label className="form-label small fw-semibold">Cantidad</label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          className="form-control"
+                          value={productoCantidad}
+                          onChange={(e) => setProductoCantidad(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-md-3">
+                        <button
+                          type="button"
+                          className="btn btn-primary w-100"
+                          style={{
+                            minHeight: 40,
+                            backgroundColor: "#0d6efd",
+                            borderColor: "#0d6efd",
+                            color: "#fff",
+                            whiteSpace: "nowrap"
+                          }}
+                          onClick={agregarProductoAlCarrito}
+                          disabled={cargandoProductos || !productoId}
+                        >
+                          <i className="bi bi-plus-lg me-1" />
+                          Agregar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -620,14 +821,25 @@ export default function VentasVentanas() {
                     <div key={it.id} className="border rounded p-2">
                       <div className="d-flex justify-content-between align-items-start gap-2">
                         <div style={{ minWidth: 0 }}>
-                          <div className="fw-bold text-truncate">{it.tipoNombre}</div>
-                          <div className="text-muted" style={{ fontSize: 12 }}>
-                            Color: <strong>{it.color}</strong>
+                          <div className="fw-bold text-truncate">
+                            {it.tipoItem === "producto" ? it.nombre : it.tipoNombre}
+                            {it.tipoItem === "producto" && (
+                              <span className="badge bg-secondary ms-2">Producto</span>
+                            )}
                           </div>
                           <div className="text-muted" style={{ fontSize: 12 }}>
-                            {it.ancho.toFixed(3)}m x {it.alto.toFixed(3)}m • Cant: {it.cantidad}
+                            {it.color ? <>Color: <strong>{it.color}</strong></> : it.categoria}
                           </div>
-                          {(it.x || it.y || it.z) ? (
+                          {it.tipoItem === "producto" ? (
+                            <div className="text-muted" style={{ fontSize: 12 }}>
+                              Cantidad: {it.cantidad}
+                            </div>
+                          ) : (
+                            <div className="text-muted" style={{ fontSize: 12 }}>
+                              {it.ancho.toFixed(3)}m x {it.alto.toFixed(3)}m • Cant: {it.cantidad}
+                            </div>
+                          )}
+                          {it.tipoItem !== "producto" && (it.x || it.y || it.z) ? (
                             <div className="text-muted" style={{ fontSize: 12 }}>
                               X:{Number(it.x).toFixed(3)} Y:{Number(it.y).toFixed(3)} Z:{Number(it.z).toFixed(3)}
                             </div>
@@ -635,13 +847,15 @@ export default function VentasVentanas() {
                         </div>
 
                         <div className="d-flex flex-column gap-2">
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => toggleDetalleItem(it.id)}
-                          >
-                            <i className="bi bi-list-check" />{" "}
-                            {openDetalle[it.id] ? "Ocultar" : "Materiales"}
-                          </button>
+                          {it.tipoItem !== "producto" && (
+                            <button
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => toggleDetalleItem(it.id)}
+                            >
+                              <i className="bi bi-list-check" />{" "}
+                              {openDetalle[it.id] ? "Ocultar" : "Materiales"}
+                            </button>
+                          )}
 
                           <button
                             className="btn btn-sm btn-outline-danger"
@@ -655,7 +869,7 @@ export default function VentasVentanas() {
                       {/* Totales recalculados */}
                       <div className="d-flex justify-content-between mt-2">
                         <span className="text-muted">Unitario (ajustado)</span>
-                        <span className="fw-bold">C$ {Number(it.totalUnitarioFinal || 0).toFixed(2)}</span>
+                        <span className="fw-bold">C$ {Number(it.tipoItem === "producto" ? it.precio : it.totalUnitarioFinal || 0).toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between">
                         <span className="text-muted">Subtotal</span>
@@ -663,7 +877,7 @@ export default function VentasVentanas() {
                       </div>
 
                       {/* Chips excluidos */}
-                      {it.excluidos?.length ? (
+                      {it.tipoItem !== "producto" && it.excluidos?.length ? (
                         <div className="mt-2" style={{ fontSize: 12 }}>
                           <span className="text-muted">Sin: </span>
                           {it.excluidos.slice(0, 3).map((m) => (
@@ -678,7 +892,7 @@ export default function VentasVentanas() {
                       ) : null}
 
                       {/* Detalle materiales con Quitar/Restaurar */}
-                      {openDetalle[it.id] && (
+                      {it.tipoItem !== "producto" && openDetalle[it.id] && (
                         <div className="mt-3">
                           <div className="small fw-bold mb-2">Materiales (clic para quitar/restaurar)</div>
 
@@ -744,7 +958,7 @@ export default function VentasVentanas() {
 
               <button
                 className="btn btn-outline-success w-100 mt-3"
-                disabled={guardando || carrito.length === 0}
+                disabled={guardando || !carrito.some((item) => item.tipoItem === "ventana")}
                 onClick={guardarVentaVentanas}
               >
                 {guardando ? "Guardando..." : "Confirmar venta + PDF"}
@@ -753,6 +967,98 @@ export default function VentasVentanas() {
           </div>
         </div>
       </div>
+
+      {mostrarModalProductos && (
+        <>
+          <div
+            className="modal-backdrop show"
+            style={{ zIndex: 1040 }}
+            onClick={() => setMostrarModalProductos(false)}
+          />
+          <div
+            className="modal show d-block"
+            tabIndex="-1"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-productos-title"
+            style={{ zIndex: 1050 }}
+            onClick={() => setMostrarModalProductos(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setMostrarModalProductos(false);
+            }}
+          >
+            <div
+              className="modal-dialog modal-dialog-centered"
+              role="document"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-content border-0 shadow-lg rounded-3">
+                <div className="modal-header py-2">
+                  <div>
+                    <h5 className="modal-title fw-bold" id="modal-productos-title">
+                      Productos disponibles
+                    </h5>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Cerrar"
+                    onClick={() => setMostrarModalProductos(false)}
+                  />
+                </div>
+                <div className="modal-body pt-2">
+                  <div className="input-group mb-2">
+                    <span className="input-group-text bg-white">
+                      <i className="bi bi-search" />
+                    </span>
+                    <input
+                      type="search"
+                      className="form-control"
+                      placeholder="Escribe para buscar..."
+                      value={busquedaProducto}
+                      onChange={(e) => setBusquedaProducto(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="small text-muted mb-1">
+                    {productosFiltrados.length} disponibles
+                  </div>
+
+                  <div style={{ maxHeight: "55vh", overflowY: "auto" }}>
+                    {productosFiltrados.map((producto) => (
+                      <button
+                        type="button"
+                        key={producto.id}
+                        className="w-100 text-start border-0 border-bottom bg-white d-flex justify-content-between align-items-center gap-3 px-2 py-2"
+                        style={{ cursor: "pointer" }}
+                        aria-label={`Seleccionar ${producto.nombre}, C$ ${producto.precio.toFixed(2)}, existencia ${producto.existencia}`}
+                        onClick={() => {
+                          setProductoId(producto.id);
+                          setMostrarModalProductos(false);
+                        }}
+                      >
+                        <span className="fw-semibold text-truncate">{producto.nombre}</span>
+                        <span className="small text-muted text-end flex-shrink-0">
+                          C$ {producto.precio.toFixed(2)} · Stock {producto.existencia}
+                        </span>
+                      </button>
+                    ))}
+
+                    {!productosFiltrados.length && (
+                      <div className="text-center text-muted p-4">
+                        {busquedaProducto
+                          ? "No se encontraron productos con esa búsqueda."
+                          : "No hay productos con existencia disponible."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

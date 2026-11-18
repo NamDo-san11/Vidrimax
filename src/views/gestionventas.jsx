@@ -74,6 +74,19 @@ const GestionVentas = () => {
         // Normalizamos items de ventanas al MISMO formato que la factura actual
         const items = Array.isArray(r.items)
           ? r.items.map(i => {
+              if (i.tipoItem === "producto") {
+                const precio = Number(i.precio ?? 0);
+                const cantidad = Number(i.cantidad ?? 0);
+                return {
+                  nombre: i.nombre ?? "Producto",
+                  color: i.color ?? "",
+                  categoria: i.categoria ?? "",
+                  cantidad,
+                  precio,
+                  subtotal: Number(i.subtotal ?? precio * cantidad)
+                };
+              }
+
               // ✅ Mostrar EXACTAMENTE como se guardó (sin toFixed)
               const nombre = `${i.tipoNombre ?? "Ventana"} (${i.ancho} x ${i.alto})`;
 
@@ -216,7 +229,7 @@ const GestionVentas = () => {
 
     factura.items.forEach((i) => {
       // ✅ Si el item ya trae medidas en el nombre, NO formateamos nada
-      const nombre = `${i.nombre} - ${i.color}`;
+      const nombre = i.color ? `${i.nombre} - ${i.color}` : i.nombre;
       docpdf.text(nombre, M_LEFT + 2, y, { maxWidth: 75 });
       docpdf.text(String(i.cantidad), 90, y, { align: "right" });
       docpdf.text(`C$ ${Number(i.precio).toFixed(2)}`, 112, y, { align: "right" });
