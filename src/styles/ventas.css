@@ -105,6 +105,52 @@
   font-weight: bold;
 }
 
+.discount-controls {
+  margin-top: 16px;
+}
+
+.discount-controls label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.discount-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.discount-inputs select,
+.discount-inputs input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.discount-inputs select {
+  flex: 1;
+}
+
+.discount-inputs input {
+  flex: 1;
+}
+
+.discount-error {
+  display: block;
+  margin-top: 6px;
+  color: #dc2626;
+}
+
+.discount-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
 /* CONFIRMAR */
 .btn-confirmar {
   margin-top: 16px;

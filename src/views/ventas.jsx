@@ -13,6 +13,11 @@ import "../styles/ventas.css";
 
 import jsPDF from "jspdf";
 import logoVidrimax from "../assets/logoex.png";
+import {
+  calcularDescuento,
+  descuentoEsInvalido,
+  obtenerDescuento
+} from "../components/ventas/descuentos";
 
 // ✅ Ajusta cuantos productos por página quieres ver
 const PAGE_SIZE = 10;
@@ -32,6 +37,8 @@ function Ventas() {
   const [empleados, setEmpleados] = useState([]);
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState("");
   const [cliente, setCliente] = useState("");
+  const [tipoDescuento, setTipoDescuento] = useState("porcentaje");
+  const [valorDescuento, setValorDescuento] = useState("");
 
   // ===== Cargar inventario =====
   useEffect(() => {
@@ -154,7 +161,10 @@ function Ventas() {
     );
   };
 
-  const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  const subtotal = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  const descuentoMonto = calcularDescuento(subtotal, tipoDescuento, valorDescuento);
+  const total = subtotal - descuentoMonto;
+  const descuentoInvalido = descuentoEsInvalido(subtotal, tipoDescuento, valorDescuento);
 
   // ===== Generar PDF =====
   const generarFacturaPDF = (factura) => {
@@ -211,6 +221,15 @@ function Ventas() {
 
     // Total
     y += 2; doc.setLineWidth(0.4); doc.line(M_LEFT, y, M_RIGHT, y);
+    if (factura.descuento?.monto > 0) {
+      y += 6; doc.setFontSize(9);
+      doc.text(`Subtotal: C$ ${Number(factura.subtotal).toFixed(2)}`, M_RIGHT, y, { align: "right" });
+      y += 5;
+      const etiquetaDescuento = factura.descuento.tipo === "porcentaje"
+        ? `Descuento (${factura.descuento.valor}%):`
+        : "Descuento:";
+      doc.text(`${etiquetaDescuento} -C$ ${Number(factura.descuento.monto).toFixed(2)}`, M_RIGHT, y, { align: "right" });
+    }
     y += 8; doc.setFontSize(11);
     doc.text(`TOTAL: C$ ${factura.total.toFixed(2)}`, M_RIGHT, y, { align: "right" });
 
@@ -224,6 +243,10 @@ function Ventas() {
 
   // ===== Guardar venta =====
   const guardarVentaFinal = async () => {
+    if (descuentoInvalido) {
+      alert("El descuento excede el máximo permitido.");
+      return;
+    }
     setModalEmpleado(false);
     setGuardando(true);
 
@@ -249,6 +272,8 @@ function Ventas() {
           precio: i.precio,
           subtotal: i.precio * i.cantidad
         })),
+        subtotal,
+        descuento: obtenerDescuento(tipoDescuento, valorDescuento, descuentoMonto),
         total
       };
 
@@ -268,6 +293,8 @@ function Ventas() {
       setCliente("");
       setEmpleadoSeleccionado("");
       setBusqueda("");
+      setTipoDescuento("porcentaje");
+      setValorDescuento("");
     } catch (e) {
       alert(e.message);
     } finally {
@@ -373,6 +400,43 @@ function Ventas() {
             </div>
           ))}
 
+          <div className="discount-controls">
+            <label htmlFor="tipo-descuento">Descuento opcional</label>
+            <div className="discount-inputs">
+              <select
+                id="tipo-descuento"
+                value={tipoDescuento}
+                onChange={e => setTipoDescuento(e.target.value)}
+              >
+                <option value="porcentaje">Porcentaje (%)</option>
+                <option value="monto">Cantidad (C$)</option>
+              </select>
+              <input
+                aria-label="Valor del descuento"
+                type="number"
+                min="0"
+                max={tipoDescuento === "porcentaje" ? 100 : subtotal}
+                step="0.01"
+                placeholder="Sin descuento"
+                value={valorDescuento}
+                onChange={e => setValorDescuento(e.target.value)}
+              />
+            </div>
+            {descuentoInvalido && (
+              <small className="discount-error">
+                {tipoDescuento === "porcentaje"
+                  ? "El porcentaje máximo es 100%."
+                  : "El descuento no puede superar el subtotal."}
+              </small>
+            )}
+          </div>
+
+          {descuentoMonto > 0 && (
+            <div className="discount-summary">
+              <span>Subtotal: C$ {subtotal.toLocaleString("es-NI", { minimumFractionDigits: 2 })}</span>
+              <span>Descuento: −C$ {descuentoMonto.toLocaleString("es-NI", { minimumFractionDigits: 2 })}</span>
+            </div>
+          )}
           <div className="total">
             Total: C$ {total.toLocaleString("es-NI", { minimumFractionDigits: 2 })}
           </div>
@@ -380,7 +444,7 @@ function Ventas() {
           <button
             className="btn-confirmar"
             onClick={() => setModalEmpleado(true)}
-            disabled={guardando || carrito.length === 0}
+            disabled={guardando || carrito.length === 0 || descuentoInvalido}
           >
             {guardando ? "Guardando..." : "Confirmar Venta"}
           </button>

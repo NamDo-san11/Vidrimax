@@ -9,6 +9,11 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 import jsPDF from "jspdf";
 import logoVidrimax from "../assets/logoex.png";
+import {
+  calcularDescuento,
+  descuentoEsInvalido,
+  obtenerDescuento
+} from "../components/ventas/descuentos";
 
 export default function VentasVentanas() {
   // ===== Tipos de ventanas =====
@@ -24,6 +29,8 @@ export default function VentasVentanas() {
   // ===== Datos factura =====
   const [cliente, setCliente] = useState("");
   const [empleado, setEmpleado] = useState("");
+  const [tipoDescuento, setTipoDescuento] = useState("porcentaje");
+  const [valorDescuento, setValorDescuento] = useState("");
 
   // ===== Tasa =====
   const [tasaUSD, setTasaUSD] = useState(36.78);
@@ -341,12 +348,15 @@ export default function VentasVentanas() {
     () => carrito.reduce((acc, it) => acc + Number(it.totalFinal || 0), 0),
     [carrito]
   );
+  const descuentoMonto = calcularDescuento(total, tipoDescuento, valorDescuento);
+  const totalConDescuento = total - descuentoMonto;
+  const descuentoInvalido = descuentoEsInvalido(total, tipoDescuento, valorDescuento);
 
   const totalUSD = useMemo(() => {
     const t = Number(tasaUSD);
     if (!t || t <= 0) return 0;
-    return total / t;
-  }, [total, tasaUSD]);
+    return totalConDescuento / t;
+  }, [totalConDescuento, tasaUSD]);
 
   // ===== PDF =====
   const generarFacturaVentanasPDF = (factura) => {
@@ -415,6 +425,15 @@ export default function VentasVentanas() {
 
     // Total
     yPos += 2; docpdf.setLineWidth(0.4); docpdf.line(M_LEFT, yPos, M_RIGHT, yPos);
+    if (factura.descuento?.monto > 0) {
+      yPos += 6; docpdf.setFontSize(9);
+      docpdf.text(`Subtotal: C$ ${Number(factura.subtotal).toFixed(2)}`, M_RIGHT, yPos, { align: "right" });
+      yPos += 5;
+      const etiquetaDescuento = factura.descuento.tipo === "porcentaje"
+        ? `Descuento (${factura.descuento.valor}%):`
+        : "Descuento:";
+      docpdf.text(`${etiquetaDescuento} -C$ ${Number(factura.descuento.monto).toFixed(2)}`, M_RIGHT, yPos, { align: "right" });
+    }
     yPos += 8; docpdf.setFontSize(11);
     docpdf.text(`TOTAL: C$ ${Number(factura.total).toFixed(2)}`, M_RIGHT, yPos, { align: "right" });
 
@@ -444,6 +463,7 @@ export default function VentasVentanas() {
       return setError("Agrega al menos una ventana.");
     }
     if (Number(tasaUSD) <= 0) return setError("Tasa USD inválida.");
+    if (descuentoInvalido) return setError("El descuento excede el máximo permitido.");
 
     setGuardando(true);
 
@@ -454,6 +474,8 @@ export default function VentasVentanas() {
         empleado: empleado.trim(),
         fecha: new Date(),
         tasaUSD: Number(tasaUSD),
+        subtotal: total,
+        descuento: obtenerDescuento(tipoDescuento, valorDescuento, descuentoMonto),
 
         items: carrito.map((i) => i.tipoItem === "producto"
           ? {
@@ -489,7 +511,7 @@ export default function VentasVentanas() {
               }))
             }),
 
-        total,
+        total: totalConDescuento,
         totalUSD
       };
 
@@ -534,6 +556,8 @@ export default function VentasVentanas() {
       setOpenDetalle({});
       setCliente("");
       setEmpleado("");
+      setTipoDescuento("porcentaje");
+      setValorDescuento("");
     } catch (e) {
       console.error(e);
       setError(e.message || "No se pudo guardar la venta.");
@@ -947,9 +971,49 @@ export default function VentasVentanas() {
 
               <hr />
 
-              <div className="d-flex justify-content-between">
+              <div className="mt-3">
+                <label htmlFor="descuento-ventanas" className="form-label fw-bold">
+                  Descuento opcional
+                </label>
+                <div className="d-flex gap-2">
+                  <select
+                    className="form-select"
+                    aria-label="Tipo de descuento"
+                    value={tipoDescuento}
+                    onChange={e => setTipoDescuento(e.target.value)}
+                  >
+                    <option value="porcentaje">Porcentaje (%)</option>
+                    <option value="monto">Cantidad (C$)</option>
+                  </select>
+                  <input
+                    id="descuento-ventanas"
+                    type="number"
+                    className="form-control"
+                    aria-label="Valor del descuento"
+                    min="0"
+                    max={tipoDescuento === "porcentaje" ? 100 : total}
+                    step="0.01"
+                    placeholder="Sin descuento"
+                    value={valorDescuento}
+                    onChange={e => setValorDescuento(e.target.value)}
+                  />
+                </div>
+                {descuentoInvalido ? (
+                  <div className="text-danger small mt-1">
+                    {tipoDescuento === "porcentaje"
+                      ? "El porcentaje máximo es 100%."
+                      : "El descuento no puede superar el subtotal."}
+                  </div>
+                ) : null}
+                {descuentoMonto > 0 ? (
+                  <div className="small text-muted mt-2">
+                    Subtotal: C$ {Number(total).toFixed(2)} · Descuento: −C$ {descuentoMonto.toFixed(2)}
+                  </div>
+                ) : null}
+              </div>
+              <div className="d-flex justify-content-between mt-2">
                 <span className="fw-bold">TOTAL (C$)</span>
-                <span className="fw-bold">{Number(total).toFixed(2)}</span>
+                <span className="fw-bold">{Number(totalConDescuento).toFixed(2)}</span>
               </div>
               <div className="d-flex justify-content-between mt-1">
                 <span className="fw-bold">TOTAL (USD)</span>
@@ -958,7 +1022,7 @@ export default function VentasVentanas() {
 
               <button
                 className="btn btn-outline-success w-100 mt-3"
-                disabled={guardando || !carrito.some((item) => item.tipoItem === "ventana")}
+                disabled={guardando || !carrito.some((item) => item.tipoItem === "ventana") || descuentoInvalido}
                 onClick={guardarVentaVentanas}
               >
                 {guardando ? "Guardando..." : "Confirmar venta + PDF"}

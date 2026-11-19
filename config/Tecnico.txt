@@ -55,3 +55,20 @@ VERIFICACION DE LA ACTUALIZACION
 - npm run build finalizo correctamente.
 - Vite mantiene el aviso de que el bundle principal supera 500 kB minificado.
 
+------------------------------------------------------------------------------------------------------------------------
+
+ACTUALIZACION: 19 de noviembre de 2026
+6. DESCUENTOS EN VENTAS
+- Se agrego un descuento opcional en las ventas de productos y en las ventas de ventanas.
+- El descuento puede calcularse como porcentaje o como una cantidad fija en cordobas.
+- Se valida que el porcentaje no exceda el 100% y que la cantidad fija no supere el subtotal.
+- El sistema muestra el subtotal, el descuento y el total final antes de confirmar la venta.
+- El subtotal y los datos del descuento quedan registrados junto con el total neto de la factura.
+- Las facturas PDF y el detalle del historial muestran el descuento aplicado; las ventas sin descuento conservan su comportamiento anterior.
+- Archivos: src/components/ventas/descuentos.js, src/views/ventas.jsx, src/views/VentaVentanas.jsx, src/views/gestionventas.jsx, src/styles/ventas.css.
+
+VERIFICACION DE LA ACTUALIZACION
+- npm run build finalizo correctamente; Vite mantiene el aviso de que el bundle principal supera 500 kB minificado.
+- ESLint para los archivos modificados finalizo sin errores.
+- La verificacion de calculos cubrio porcentajes, cantidades fijas, limites, entradas invalidas y la opcion sin descuento.
+- ESLint global aun reporta errores preexistentes en otros archivos del proyecto.

@@ -53,7 +53,15 @@ const GestionVentas = () => {
             }))
           : [];
 
-        const total = Number(r.total ?? items.reduce((acc, it) => acc + it.subtotal, 0));
+        const subtotal = Number(r.subtotal ?? items.reduce((acc, it) => acc + it.subtotal, 0));
+        const descuento = r.descuento && Number(r.descuento.monto) > 0
+          ? {
+              tipo: r.descuento.tipo,
+              valor: Number(r.descuento.valor ?? 0),
+              monto: Number(r.descuento.monto)
+            }
+          : null;
+        const total = Number(r.total ?? subtotal);
 
         return {
           id: d.id,
@@ -62,6 +70,8 @@ const GestionVentas = () => {
           fecha,
           cliente: r.cliente || "Cliente",
           empleado: r.empleado || "Empleado",
+          subtotal,
+          descuento,
           total,
           items,
         };
@@ -107,7 +117,15 @@ const GestionVentas = () => {
             })
           : [];
 
-        const total = Number(r.total ?? items.reduce((acc, it) => acc + it.subtotal, 0));
+        const subtotal = Number(r.subtotal ?? items.reduce((acc, it) => acc + it.subtotal, 0));
+        const descuento = r.descuento && Number(r.descuento.monto) > 0
+          ? {
+              tipo: r.descuento.tipo,
+              valor: Number(r.descuento.valor ?? 0),
+              monto: Number(r.descuento.monto)
+            }
+          : null;
+        const total = Number(r.total ?? subtotal);
 
         return {
           id: d.id,
@@ -116,6 +134,8 @@ const GestionVentas = () => {
           fecha,
           cliente: r.cliente || "Cliente",
           empleado: r.empleado || "Empleado",
+          subtotal,
+          descuento,
           total,
           items,
         };
@@ -240,6 +260,15 @@ const GestionVentas = () => {
 
     // Total
     y += 2; docpdf.setLineWidth(0.4); docpdf.line(M_LEFT, y, M_RIGHT, y);
+    if (factura.descuento?.monto > 0) {
+      y += 6; docpdf.setFontSize(9);
+      docpdf.text(`Subtotal: C$ ${Number(factura.subtotal).toFixed(2)}`, M_RIGHT, y, { align: "right" });
+      y += 5;
+      const etiquetaDescuento = factura.descuento.tipo === "porcentaje"
+        ? `Descuento (${factura.descuento.valor}%):`
+        : "Descuento:";
+      docpdf.text(`${etiquetaDescuento} -C$ ${Number(factura.descuento.monto).toFixed(2)}`, M_RIGHT, y, { align: "right" });
+    }
     y += 8; docpdf.setFontSize(11);
     docpdf.text(`TOTAL: C$ ${Number(factura.total).toFixed(2)}`, M_RIGHT, y, { align: "right" });
 
@@ -329,6 +358,12 @@ const GestionVentas = () => {
               <strong>Cliente:</strong> {ventaSel.cliente}<br/>
               <strong>Empleado:</strong> {ventaSel.empleado}<br/>
               <strong>Fecha:</strong> {ventaSel.fecha.toLocaleString()}<br/>
+              {ventaSel.descuento?.monto > 0 && (
+                <>
+                  <strong>Subtotal:</strong> C$ {Number(ventaSel.subtotal).toFixed(2)}<br/>
+                  <strong>Descuento:</strong> −C$ {Number(ventaSel.descuento.monto).toFixed(2)}<br/>
+                </>
+              )}
               <strong>Total:</strong> C$ {Number(ventaSel.total).toFixed(2)}
             </div>
             <div className="emp-card" style={{ padding:12 }}>
